@@ -1,0 +1,65 @@
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- Python / Build ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.build/
+build/
+dist/
+.eggs/
+*.egg-info/
+pip-wheel-metadata/
+
+# --- Virtual env ---
+.venv/
+venv/
+env/
+
+# --- Env / Secrets ---
+.env
+.env.*
+!.env.example
+secrets.json
+*.pem
+*.key
+
+# --- Django ---
+# 로컬 DB/캐시
+db.sqlite3
+db.sqlite3-journal
+
+# static & media (운영에서 수집/업로드되는 파일)
+static/
+staticfiles/
+media/
+# 필요하면 업로드 경로 유지용 파일은 허용
+!media/.gitkeep
+!static/.gitkeep
+
+# 로그/런타임 파일
+*.log
+logs/
+celerybeat-schedule
+celerybeat.pid
+
+# --- Test / Coverage / Type check ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# --- Misc ---
+.ipynb_checkpoints/
