@@ -29,5 +29,5 @@ def portfolio_representative(request):
 
 @api_view(["GET"])
 # @permission_classes([AllowAny])
-def portfolio_detail_test(request, portfolio_id: int):
+def portfolio_detail(request, portfolio_id: int):
     return Response({"api": "portfolio.detail", "id": portfolio_id})
