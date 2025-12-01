@@ -1,8 +1,12 @@
 <script setup>
+import { useRouter } from 'vue-router'; // ✅ 1. 라우터 기능 불러오기
+
+const router = useRouter(); // ✅ 2. 라우터 사용 준비
+
 const retakeSurvey = () => {
   if(confirm('기존 성향 정보가 초기화됩니다. 다시 진행하시겠습니까?')) {
-    alert('설문 페이지로 이동합니다.');
-    // router.push('/survey');
+    // ✅ 3. 설문 페이지로 이동
+    router.push('/survey');
   }
 };
 </script>

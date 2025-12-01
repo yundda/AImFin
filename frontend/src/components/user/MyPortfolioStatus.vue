@@ -1,11 +1,12 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import MyPortfolioList from './MyPortfolioList.vue'; // 리스트 컴포넌트 import
+import MyPortfolioList from './MyPortfolioList.vue';
+import SimpleDonut from '@/components/common/SimpleDonut.vue'; // ✅ 차트 컴포넌트 추가
 
 const router = useRouter();
 const portfolios = ref([]);
-const isListView = ref(false); // 리스트 보기 모드 여부
+const isListView = ref(false);
 
 const loadPortfolios = () => {
   portfolios.value = JSON.parse(localStorage.getItem('my_portfolios') || '[]');
@@ -18,23 +19,16 @@ const mainPortfolio = computed(() => {
   return portfolios.value.find(p => p.isMain) || portfolios.value[0];
 });
 
-// 차트 스타일 계산
-const pieStyle = computed(() => {
-  if (!mainPortfolio.value) return '';
-  const [s, b, r, c] = mainPortfolio.value.assets;
-  return `background: conic-gradient(#536dfe 0% ${s}%, #a5b4fc ${s}% ${s+b}%, #cbd5e1 ${s+b}% ${s+b+r}%, #e2e8f0 ${s+b+r}% 100%)`;
-});
-
 const handleListBack = () => {
   isListView.value = false;
-  loadPortfolios(); // 리스트에서 변경된 내용(대표설정 등) 새로고침
+  loadPortfolios(); 
 };
 </script>
 
 <template>
   <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 h-full flex flex-col relative">
     
-    <!-- 1. 리스트 보기 모드일 때 -->
+    <!-- 1. 리스트 보기 모드 -->
     <MyPortfolioList v-if="isListView" @back="handleListBack" class="animate-fade-in" />
 
     <!-- 2. 요약 화면 (대시보드) -->
@@ -46,7 +40,6 @@ const handleListBack = () => {
             총 {{ portfolios.length }}개의 포트폴리오를 관리 중입니다.
           </p>
         </div>
-        <!-- 리스트 보기 버튼 -->
         <button 
           v-if="portfolios.length > 0" 
           @click="isListView = true"
@@ -94,10 +87,14 @@ const handleListBack = () => {
               <div class="flex items-center gap-2"><span class="w-3 h-3 bg-[#e2e8f0] rounded-full"></span>현금 {{ mainPortfolio.assets[3] }}%</div>
             </div>
           </div>
-          <!-- 도넛 차트 -->
-          <div class="w-32 h-32 rounded-full relative shadow-sm" :style="pieStyle">
-            <div class="absolute inset-3 bg-white rounded-full flex items-center justify-center">
-              <span class="text-xs font-bold text-gray-400">Asset<br>Mix</span>
+          
+          <!-- ✅ 도넛 차트 및 텍스트 수정 -->
+          <div class="relative w-32 h-32">
+            <SimpleDonut :assets="mainPortfolio.assets" size="w-32 h-32" />
+            
+            <!-- 중앙 텍스트 오버레이 -->
+            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span class="text-sm font-bold text-[#536dfe]">{{ mainPortfolio.typeLabel }}</span>
             </div>
           </div>
         </div>
