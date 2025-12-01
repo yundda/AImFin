@@ -1,0 +1,119 @@
+<script setup>
+import { ref } from 'vue';
+import BaseInput from '@/components/common/BaseInput.vue';
+
+// 프로필 수정 폼 데이터
+const profile = ref({
+  name: '윤강',
+  email: 'yoonstrong@example.com'
+});
+
+// 비밀번호 수정 폼 데이터
+const password = ref({
+  current: '',
+  new: '',
+  confirm: ''
+});
+
+const updateProfile = () => {
+  console.log('Update Profile:', profile.value);
+  alert('프로필 정보가 수정되었습니다.');
+};
+
+const updatePassword = () => {
+  if (password.value.new !== password.value.confirm) {
+    alert('새 비밀번호가 일치하지 않습니다.');
+    return;
+  }
+  console.log('Update Password:', password.value);
+  alert('비밀번호가 변경되었습니다.');
+  password.value = { current: '', new: '', confirm: '' };
+};
+</script>
+
+<template>
+  <div class="flex flex-col">
+    <h2 class="text-xl font-bold text-gray-900 mb-6">계정 설정</h2>
+
+    <!-- 
+      ✅ 변경 1: items-start 제거 
+      Grid의 기본 동작(stretch) 덕분에 두 카드의 높이가 자동으로 맞춰집니다.
+      h-full을 제거하여 불필요하게 화면 끝까지 늘어나는 것을 방지했습니다.
+    -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      
+      <!-- 1. 기본 정보 설정 -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col">
+        <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+          <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-sm">👤</div>
+          <h3 class="text-sm font-bold text-gray-600">기본 정보 수정</h3>
+        </div>
+        
+        <!-- ✅ 변경 2: flex-1 제거 -->
+        <form @submit.prevent="updateProfile" class="flex flex-col">
+          <BaseInput 
+            id="profile-name"
+            label="이름" 
+            v-model="profile.name" 
+            placeholder="이름을 입력하세요"
+          />
+          <BaseInput 
+            id="profile-email"
+            label="이메일" 
+            type="email"
+            v-model="profile.email" 
+            placeholder="이메일을 입력하세요"
+          />
+          
+          <!-- ✅ 변경 3: mt-auto -> mt-8 (버튼을 바닥이 아닌 입력창 근처로) -->
+          <div class="mt-8 text-right">
+            <button type="submit" class="px-6 py-2.5 bg-[#2C4768] text-white text-sm font-bold rounded-lg hover:bg-[#1a2f4d] transition-colors shadow-md w-full sm:w-auto">
+              정보 저장
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 2. 비밀번호 변경 -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col">
+        <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+          <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center text-sm">🔒</div>
+          <h3 class="text-sm font-bold text-gray-600">비밀번호 보안</h3>
+        </div>
+        
+        <form @submit.prevent="updatePassword" class="flex flex-col gap-1">
+          <BaseInput 
+            id="pw-current"
+            label="현재 비밀번호" 
+            type="password"
+            v-model="password.current" 
+            placeholder="현재 비밀번호"
+          />
+          
+          <BaseInput 
+            id="pw-new"
+            label="새 비밀번호" 
+            type="password"
+            v-model="password.new" 
+            placeholder="영문, 숫자 포함 8자 이상"
+          />
+          <BaseInput 
+            id="pw-confirm"
+            label="새 비밀번호 확인" 
+            type="password"
+            v-model="password.confirm" 
+            placeholder="한 번 더 입력하세요"
+          />
+
+          <!-- 버튼 위치 조정 -->
+          <div class="mt-8 text-right">
+            <button type="submit" class="px-6 py-2.5 bg-[#536dfe] text-white text-sm font-bold rounded-lg hover:bg-[#4059e0] transition-colors shadow-md w-full sm:w-auto">
+              비밀번호 변경
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</template>
