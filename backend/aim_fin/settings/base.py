@@ -11,21 +11,18 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import environ, os
+from datetime import timedelta
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+# BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
+SECRET_KEY = env("SECRET_KEY", default="dev-secret-change-me")
+DEBUG = env.bool("DEBUG", default=True)
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-d^lm4n*p4^95@nfkql$l&&ga7g9&$$shpibk=8dra=hrd@hil1'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -39,8 +36,11 @@ INSTALLED_APPS = [
     
     "corsheaders",
     "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
-    
+    "csp",
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,11 +49,18 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
+# 기본 Authorization 헤더로 진행(나중에 쿠키 기반으로 바꿀 수 있음)
+
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 MIDDLEWARE = [
+    # CSP는 가능하면 맨 앞 (보안 헤더 먼저)
+    "csp.middleware.CSPMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # corsheaders는 여기!
@@ -135,3 +142,83 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# SimpleJWT 토큰 수명 (쿠키/헤더 어떤 방식이든 공통)
+from datetime import timedelta
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,               # 리프레시 회전
+    "BLACKLIST_AFTER_ROTATION": True,            # 회전 후 이전 리프레시 무효화
+    "UPDATE_LAST_LOGIN": True,
+}
+
+# CORS (개발용)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",    # Vite
+    "http://127.0.0.1:5173",
+]
+CORS_ALLOW_CREDENTIALS = True
+
+# CSP (최소 화이트리스트. 필요한 SDK만 추가)
+# ✅ django-csp v4 포맷
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        # 기본 출처
+        "default-src": ("'self'",),
+
+        # 스크립트: 필요한 SDK 도메인만 화이트리스트
+        "script-src": (
+            "'self'",
+            "https://accounts.google.com",
+            # 개발 중 인라인 스크립트가 꼭 필요하면 다음 중 하나를 사용 (권장하진 않음)
+            # "'unsafe-inline'",  # 지양
+            # "'nonce-<RUNTIME_NONCE>'",  # 런타임 nonce 적용 시
+        ),
+
+        # 스타일/폰트/이미지
+        "style-src": ("'self'", "https://fonts.googleapis.com"),
+        "font-src": ("'self'", "https://fonts.gstatic.com"),
+        "img-src": ("'self'", "data:"),
+
+        # API 통신(프론트 개발 서버/Vite와 백엔드)
+        # Vue 개발서버 쓰면 connect-src에 추가
+        "connect-src": (
+            "'self'",
+            "http://127.0.0.1:5173",
+            "http://localhost:5173",
+        ),
+
+        # (선택) 프레임/오브젝트/미디어 등 필요 시 추가
+        # "frame-ancestors": ("'self'",),
+        # "media-src": ("'self'",),
+    },
+
+    # (선택) Report-Only로 먼저 적용해보고 싶을 때 True로
+    # "REPORT_ONLY": False,
+
+    # (선택) 리포트 수집 엔드포인트
+    # "REPORT_URI": ["https://your.report.collector.example/csp"],
+}
+# Redis 캐시/세션 (django-redis)
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": env("REDIS_URL", default="redis://127.0.0.1:6379/1"),
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        "TIMEOUT": 600,  # 기본 TTL 10분
+    }
+}
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+
+
+
+AUTH_USER_MODEL = "users.User"
+
+# OAuth/프런트 URL (소셜 로그인용)
+BASE_URL = env("BASE_URL", default="http://localhost:8000")
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
+GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", default="")
