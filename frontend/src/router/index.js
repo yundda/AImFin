@@ -9,6 +9,7 @@ import SurveyResult from '@/pages/SurveyResult.vue'
 // ✅ 새로 추가되는 페이지들
 import PortfolioCreate from '@/pages/PortfolioCreate.vue'
 import PortfolioResult from '@/pages/PortfolioResult.vue'
+import PortfolioCompare from '@/pages/PortfolioCompare.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -24,6 +25,7 @@ const router = createRouter({
     // ✅ 신규 라우트 추가
     { path: '/portfolio/create', name: 'portfolio-create', component: PortfolioCreate },
     { path: '/portfolio/result', name: 'portfolio-result', component: PortfolioResult },
+    { path: '/portfolio/compare', name: 'portfolio-compare', component: PortfolioCompare }, // ✅ 추가
   ]
 })
 
