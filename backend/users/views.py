@@ -3,7 +3,7 @@ from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
 from .serializer import RegisterSerializer
 
@@ -28,4 +28,24 @@ class LogoutView(APIView):
                 token.blacklist()
             except Exception:
                 pass
-        return Response(status=status.HTTP_205_RESET_CONTENT)
+        resp = Response(status=status.HTTP_205_RESET_CONTENT)
+        resp.delete_cookie("access")
+        resp.delete_cookie("refresh")
+        return resp
+
+class CookieRefreshView(APIView):
+    def post(self, request):
+        refresh = request.COOKIES.get("refresh") or request.data.get("refresh")
+        if not refresh:
+            return Response({"detail": "no refresh"}, status=400)
+        try:
+            token = RefreshToken(refresh)
+            new_access = str(token.access_token)
+            new_refresh = str(token)  # 회전 설정 시 새 토큰 생성됨
+        except TokenError:
+            return Response({"detail": "invalid refresh"}, status=401)
+
+        resp = Response({"detail": "rotated"})
+        resp.set_cookie("access", new_access, httponly=True, samesite="None", secure=False)
+        resp.set_cookie("refresh", new_refresh, httponly=True, samesite="None", secure=False)
+        return resp

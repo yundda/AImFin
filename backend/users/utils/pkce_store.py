@@ -13,3 +13,14 @@ def pop_verifier(state: str) -> str | None:
     if val:
         cache.delete(key)
     return val
+
+NONCE_KEY = "google:nonce:{state}"
+
+def save_nonce(state: str, nonce: str):
+    cache.set(NONCE_KEY.format(state=state), nonce, timeout=TTL)
+
+def pop_nonce(state: str) -> str | None:
+    key = NONCE_KEY.format(state=state)
+    val = cache.get(key)
+    if val: cache.delete(key)
+    return val
