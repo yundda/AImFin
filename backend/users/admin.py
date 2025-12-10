@@ -1,4 +1,5 @@
 from django.contrib import admin
+from .models import SurveyResult, UserRiskSnapshot
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -8,3 +9,6 @@ class UserAdmin(admin.ModelAdmin):
     list_display = ("id", "email", "nickname", "date_joined")
     search_fields = ("email", "nickname")
     ordering = ("-id",)
+
+admin.site.register(SurveyResult)
+admin.site.register(UserRiskSnapshot)

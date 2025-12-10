@@ -56,7 +56,7 @@ def build_auth_url(state: str, code_challenge: str) -> str:
     from urllib.parse import urlencode
     params = {
         'client_id': settings.GOOGLE_CLIENT_ID,
-        'redirect_uri': f"{settings.BASE_URL}/api/auth/google/callback",
+        'redirect_uri': f"{settings.BASE_URL}/api/users/auth/google/callback",
         'response_type': 'code',
         'scope': 'openid email profile',
         'state': state,
@@ -73,7 +73,7 @@ def exchange_code_for_token(code: str, code_verifier: str):
         'code': code,
         'code_verifier': code_verifier,
         'grant_type': 'authorization_code',
-        'redirect_uri': f"{settings.BASE_URL}/api/auth/google/callback",
+        'redirect_uri': f"{settings.BASE_URL}/api/users/auth/google/callback",
     }
     headers = {'content-type': 'application/x-www-form-urlencoded'}
     r = requests.post(GOOGLE_TOKEN, data=data, headers=headers, timeout=10)

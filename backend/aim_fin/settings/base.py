@@ -53,7 +53,8 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "users.auth.CookieJWTAuthentication",  # <- 쿠키 우선
+        "users.auth.CookieJWTAuthentication",                 # 쿠키 우선
+        "rest_framework_simplejwt.authentication.JWTAuthentication",  # 헤더(Bearer)도 허용
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -185,8 +186,8 @@ CONTENT_SECURITY_POLICY = {
         # Vue 개발서버 쓰면 connect-src에 추가
         "connect-src": (
             "'self'",
-            "http://127.0.0.1:5173",
             "http://localhost:5173",
+            "http://127.0.0.1:5173",
         ),
 
         # (선택) 프레임/오브젝트/미디어 등 필요 시 추가
@@ -218,7 +219,11 @@ SESSION_CACHE_ALIAS = "default"
 AUTH_USER_MODEL = "users.User"
 
 # OAuth/프런트 URL (소셜 로그인용)
-BASE_URL = env("BASE_URL", default="http://localhost:8000")
+BASE_URL = env("BASE_URL", default="http://127.0.0.1:8000")
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
 GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", default="")
+# ... 기존 import/environ 세팅 하단
+KAKAO_CLIENT_ID = env("KAKAO_CLIENT_ID", default="")
+KAKAO_CLIENT_SECRET = env("KAKAO_CLIENT_SECRET", default="")
+KAKAO_REDIRECT_URI = env("KAKAO_REDIRECT_URI", default="http://127.0.0.1:8000/api/users/auth/kakao/callback")

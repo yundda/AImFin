@@ -1,9 +1,12 @@
+import re
 from django.contrib.auth import get_user_model
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
 
 from .serializer import RegisterSerializer
 
@@ -49,3 +52,26 @@ class CookieRefreshView(APIView):
         resp.set_cookie("access", new_access, httponly=True, samesite="None", secure=False)
         resp.set_cookie("refresh", new_refresh, httponly=True, samesite="None", secure=False)
         return resp
+    
+class NicknameView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """현재 사용자 닉네임 조회"""
+        return Response({"nickname": request.user.nickname or ""}, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        """닉네임 설정/수정"""
+        nick = (request.data.get("nickname") or "").strip()
+
+        if not nick:
+            return Response({"detail": "nickname is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if len(nick) > 20:
+            return Response({"detail": "nickname too long (max 20)"}, status=status.HTTP_400_BAD_REQUEST)
+        if not re.fullmatch(r"[A-Za-z0-9가-힣 _.\-]{1,20}", nick):
+            return Response({"detail": "invalid nickname (allowed: letters, digits, 한글, space, . _ -)"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        user.nickname = nick
+        user.save(update_fields=["nickname"])
+        return Response({"id": user.id, "email": user.email, "nickname": user.nickname}, status=status.HTTP_200_OK)
