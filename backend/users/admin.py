@@ -1,6 +1,11 @@
 from django.contrib import admin
-from .models import SurveyResult, UserRiskSnapshot
 from django.contrib.auth import get_user_model
+from .models import (
+    SurveyResult,
+    UserRiskSnapshot,
+    InvestmentPreference,
+    UserPreferenceSnapshot,
+)
 
 User = get_user_model()
 
@@ -12,3 +17,5 @@ class UserAdmin(admin.ModelAdmin):
 
 admin.site.register(SurveyResult)
 admin.site.register(UserRiskSnapshot)
+admin.site.register(InvestmentPreference)
+admin.site.register(UserPreferenceSnapshot)

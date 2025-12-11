@@ -8,7 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
-from .serializer import RegisterSerializer
+from .serializers import RegisterSerializer
+from .models import SurveyResult  # 설문 이력 카운트용
 
 User = get_user_model()
 
@@ -52,7 +53,34 @@ class CookieRefreshView(APIView):
         resp.set_cookie("access", new_access, httponly=True, samesite="None", secure=False)
         resp.set_cookie("refresh", new_refresh, httponly=True, samesite="None", secure=False)
         return resp
-    
+
+class ProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        u = request.user
+
+        # 최신 성향: 스냅샷 우선
+        snap = getattr(u, "risk_snapshot", None)
+        sr = getattr(snap, "latest_result", None) if snap else None
+
+        data = {
+            "id": u.id,
+            "email": u.email,
+            "nickname": u.nickname or "",
+
+            # 최신 성향 요약(없으면 null)
+            "survey_profile": sr.profile if sr else None,                 # 예: "BALANCED"
+            "survey_profile_label": sr.get_profile_display() if sr else None,  # 예: "중립형"
+            "survey_total_score": float(sr.total_score) if sr else None,  # 예: 73.33
+            "last_survey_at": sr.created_at.isoformat() if sr else None,
+
+            # 이력/온보딩 편의정보
+            "survey_count": SurveyResult.objects.filter(user=u).count(),
+            "needs_nickname": not bool((u.nickname or "").strip()),
+            "has_survey": bool(sr),
+        }
+        return Response(data, status=status.HTTP_200_OK)
 class NicknameView(APIView):
     permission_classes = [IsAuthenticated]
 

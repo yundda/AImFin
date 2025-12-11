@@ -227,3 +227,23 @@ GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", default="")
 KAKAO_CLIENT_ID = env("KAKAO_CLIENT_ID", default="")
 KAKAO_CLIENT_SECRET = env("KAKAO_CLIENT_SECRET", default="")
 KAKAO_REDIRECT_URI = env("KAKAO_REDIRECT_URI", default="http://127.0.0.1:8000/api/users/auth/kakao/callback")
+
+
+# --- LLM/GMS 설정 (기존 변수와 호환) ---
+OPENAI_MODEL   = env("OPENAI_MODEL",   default="gpt-4o-mini")
+OPENAI_TIMEOUT = env.int("OPENAI_TIMEOUT", default=30)
+
+GMS_BASE_URL = env("GMS_BASE_URL", default="https://gms.ssafy.io/gmsapi")
+GMS_KEY      = env("GMS_KEY",      default="")
+
+# 통합 alias (gpt_client가 이 값만 참조)
+AI_API_STYLE  = env("AI_API_STYLE",  default="responses")  # 'responses' 또는 'chat'
+AI_MODEL      = env("AI_MODEL",      default=OPENAI_MODEL)
+AI_TIMEOUT    = env.int("AI_TIMEOUT", default=OPENAI_TIMEOUT)
+
+# GMS 게이트웨이는 /api.openai.com/v1 붙여서 프록시됨
+AI_API_BASE   = env(
+    "AI_API_BASE",
+    default=f"{GMS_BASE_URL.rstrip('/')}/api.openai.com/v1"
+)
+AI_API_KEY    = env("AI_API_KEY", default=GMS_KEY)
