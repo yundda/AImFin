@@ -22,7 +22,7 @@ class KakaoStartView(APIView):
         # 구글처럼 같은 저장소를 재활용 (이름은 nonce지만 state 저장용으로 사용)
         save_nonce(state, "1")  # 값 의미 없음, 유효성만 보자
         url = build_auth_url(state)
-        return Response({"auth_url": url})
+        return redirect(url)
 
 class KakaoCallbackView(APIView):
     def get(self, request):

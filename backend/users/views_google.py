@@ -26,7 +26,7 @@ class GoogleStartView(APIView):
         save_nonce(state, nonce)
         # build_auth_url 내부에서 settings.GOOGLE_REDIRECT_URI 사용하도록 구현되어 있어야 함
         url = build_auth_url(state, code_challenge) + f"&nonce={nonce}"
-        return Response({"auth_url": url})
+        return redirect(url)
 
 class GoogleCallbackView(APIView):
     def get(self, request):

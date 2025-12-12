@@ -7,20 +7,11 @@ const instance = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // ✅ 쿠키 전송 허용
 });
 
-// 요청 인터셉터: API 요청을 보낼 때마다 토큰이 있으면 헤더에 자동으로 실어 보냅니다.
-instance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// 요청 인터셉터 (더 이상 Bearer 토큰을 헤더에 넣을 필요 없음 - 쿠키 사용)
+// instance.interceptors.request.use(...) 
+
 
 export default instance;

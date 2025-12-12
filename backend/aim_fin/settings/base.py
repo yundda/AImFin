@@ -204,10 +204,8 @@ CONTENT_SECURITY_POLICY = {
 # Redis 캐시/세션 (django-redis)
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": env("REDIS_URL", default="redis://127.0.0.1:6379/1"),
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-        "TIMEOUT": 600,  # 기본 TTL 10분
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",
     }
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"

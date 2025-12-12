@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.views import TokenObtainPairView # ✅ 추가
 from rest_framework import status
 
 from .serializers import RegisterSerializer
@@ -19,6 +20,40 @@ def signup(request):
     ser.is_valid(raise_exception=True)
     ser.save()
     return Response(ser.data, status=status.HTTP_201_CREATED)
+
+class CustomLoginView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        # 1) 기본 로직으로 토큰 생성
+        response = super().post(request, *args, **kwargs)
+        
+        # 2) 토큰 추출
+        access_token = response.data.get("access")
+        refresh_token = response.data.get("refresh")
+
+        if access_token and refresh_token:
+            # 3) 쿠키 설정 (Social Login과 동일한 설정)
+            from django.conf import settings
+            is_secure = not settings.DEBUG
+            samesite = "None" if is_secure else "Lax"
+            
+            response.set_cookie(
+                "access", 
+                access_token, 
+                httponly=True, 
+                secure=is_secure, 
+                samesite=samesite, 
+                path="/"
+            )
+            response.set_cookie(
+                "refresh", 
+                refresh_token, 
+                httponly=True, 
+                secure=is_secure, 
+                samesite=samesite, 
+                path="/"
+            )
+        
+        return response
 
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
