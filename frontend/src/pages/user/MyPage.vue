@@ -1,18 +1,30 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth'; // Auth Store
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import UserProfileCard from '@/components/user/UserProfileCard.vue';
 import MyPortfolioStatus from '@/components/user/MyPortfolioStatus.vue';
 import MyPropensity from '@/components/user/MyPropensity.vue';
-import MyAccountSettings from '@/components/user/MyAccountSettings.vue'; // ✅ 추가
+import MyAccountSettings from '@/components/user/MyAccountSettings.vue';
 
 const router = useRouter();
+const authStore = useAuthStore();
 
 // activeTab 기본값을 'dashboard'로 설정하여 처음엔 포트폴리오 현황이 보이게 함
 const activeTab = ref('dashboard'); 
 
-const handleLogout = () => {
+onMounted(async () => {
+  try {
+    await authStore.fetchUser();
+  } catch (error) {
+    // 인증 실패 시 로그인 페이지로 이동 (선택적)
+    // router.push('/auth/login');
+  }
+});
+
+const handleLogout = async () => {
+  await authStore.logout();
   router.push('/auth/login');
 };
 </script>

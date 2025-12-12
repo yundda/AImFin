@@ -2,13 +2,12 @@
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
-import BaseInput from '@/components/common/BaseInput.vue';
 
 const route = useRoute();
 const router = useRouter();
-const type = route.query.type; // 이전 페이지에서 넘어온 성향 정보
+const type = route.query.type; 
 
-const amount = ref('');
+const amount = ref(''); // 초기값은 빈 문자열 (입력 유도)
 const selectedAssets = ref([]);
 
 const assetOptions = [
@@ -20,6 +19,13 @@ const assetOptions = [
   { id: 'crypto', label: '가상화폐', icon: '🪙' }
 ];
 
+// ✅ 금액 더하기 함수 추가
+const addAmount = (val) => {
+  // 현재 값이 없거나 숫자가 아니면 0으로 취급하고 더함
+  const current = Number(amount.value) || 0;
+  amount.value = current + val;
+};
+
 const toggleAsset = (id) => {
   if (selectedAssets.value.includes(id)) {
     selectedAssets.value = selectedAssets.value.filter(a => a !== id);
@@ -29,12 +35,9 @@ const toggleAsset = (id) => {
 };
 
 const generatePortfolio = () => {
-  if (!amount.value) return alert('투자 금액을 입력해주세요.');
+  if (!amount.value || amount.value <= 0) return alert('투자 금액을 입력해주세요.');
   if (selectedAssets.value.length === 0) return alert('최소 1개 이상의 선호 상품을 선택해주세요.');
 
-  // 로딩 효과 후 결과 페이지로 이동
-  // 실제로는 여기서 백엔드 API 호출 (성향 + 금액 + 선호상품 전송)
-  
   router.push({ 
     name: 'portfolio-result', 
     query: { 
@@ -53,7 +56,7 @@ const generatePortfolio = () => {
       <div class="bg-white rounded-3xl shadow-lg border border-gray-100 p-10 relative overflow-hidden">
         <!-- 배경 장식 -->
         <div class="absolute top-0 left-0 w-full h-2 bg-gray-100">
-          <div class="h-full bg-[#536dfe] w-full"></div> <!-- 진행률 100% -->
+          <div class="h-full bg-[#536dfe] w-full"></div> 
         </div>
 
         <div class="text-sm font-bold text-gray-400 mb-8 tracking-widest text-center">STEP 2. 포트폴리오 조건 설정</div>
@@ -70,10 +73,21 @@ const generatePortfolio = () => {
             />
             <span class="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500 font-bold">원</span>
           </div>
-          <div class="flex gap-2 mt-3 overflow-x-auto pb-2">
-            <button @click="amount = 1000000" class="px-3 py-1.5 bg-gray-50 rounded-lg text-sm text-gray-600 hover:bg-gray-100 whitespace-nowrap">+100만</button>
-            <button @click="amount = 5000000" class="px-3 py-1.5 bg-gray-50 rounded-lg text-sm text-gray-600 hover:bg-gray-100 whitespace-nowrap">+500만</button>
-            <button @click="amount = 10000000" class="px-3 py-1.5 bg-gray-50 rounded-lg text-sm text-gray-600 hover:bg-gray-100 whitespace-nowrap">+1,000만</button>
+          
+          <!-- ✅ 금액 추가 버튼 (클릭 시 addAmount 실행) -->
+          <div class="flex gap-2 mt-3 overflow-x-auto pb-2 no-scrollbar">
+            <button @click="addAmount(1000000)" class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-[#536dfe] hover:text-white hover:border-[#536dfe] transition-colors whitespace-nowrap active:scale-95">
+              +100만
+            </button>
+            <button @click="addAmount(5000000)" class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-[#536dfe] hover:text-white hover:border-[#536dfe] transition-colors whitespace-nowrap active:scale-95">
+              +500만
+            </button>
+            <button @click="addAmount(10000000)" class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-[#536dfe] hover:text-white hover:border-[#536dfe] transition-colors whitespace-nowrap active:scale-95">
+              +1,000만
+            </button>
+            <button @click="amount = ''" class="px-4 py-2 bg-red-50 border border-red-100 rounded-lg text-sm font-medium text-red-500 hover:bg-red-100 transition-colors whitespace-nowrap active:scale-95">
+              초기화
+            </button>
           </div>
         </div>
 
@@ -85,8 +99,8 @@ const generatePortfolio = () => {
               v-for="opt in assetOptions" 
               :key="opt.id"
               @click="toggleAsset(opt.id)"
-              class="p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 h-28"
-              :class="selectedAssets.includes(opt.id) ? 'border-[#536dfe] bg-blue-50 text-[#536dfe]' : 'border-gray-100 hover:border-gray-300 text-gray-500'"
+              class="p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 h-28 hover:shadow-md active:scale-95"
+              :class="selectedAssets.includes(opt.id) ? 'border-[#536dfe] bg-blue-50 text-[#536dfe] shadow-sm' : 'border-gray-100 hover:border-gray-300 text-gray-500'"
             >
               <span class="text-3xl">{{ opt.icon }}</span>
               <span class="font-bold text-sm">{{ opt.label }}</span>
@@ -96,7 +110,7 @@ const generatePortfolio = () => {
 
         <button 
           @click="generatePortfolio"
-          class="w-full py-5 bg-[#536dfe] text-white text-lg font-bold rounded-2xl shadow-lg hover:bg-[#4059e0] transition-transform hover:-translate-y-1"
+          class="w-full py-5 bg-[#536dfe] text-white text-lg font-bold rounded-2xl shadow-lg hover:bg-[#4059e0] transition-transform hover:-translate-y-1 active:translate-y-0"
         >
           AI 포트폴리오 생성하기 ✨
         </button>
@@ -105,3 +119,14 @@ const generatePortfolio = () => {
     </div>
   </DefaultLayout>
 </template>
+
+<style scoped>
+/* 가로 스크롤바 숨김 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>

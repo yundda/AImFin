@@ -1,8 +1,7 @@
 <script setup>
 import { computed } from 'vue';
-// ✅ 구글, 카카오 로고 import
 import googleLogo from '@/assets/images/google-logo.png'; 
-import kakaoLogo from '@/assets/images/kakao-logo.png'; // 카카오 로고 파일 필요
+import kakaoLogo from '@/assets/images/kakao-logo.png'; 
 
 const props = defineProps({
   mode: {
@@ -12,7 +11,6 @@ const props = defineProps({
   }
 });
 
-// 버튼 텍스트 계산
 const googleText = computed(() => {
   return props.mode === 'login' ? 'Google로 로그인하기' : 'Google로 가입하기';
 });
@@ -21,12 +19,17 @@ const kakaoText = computed(() => {
   return props.mode === 'login' ? '카카오 계정으로 로그인하기' : '카카오 계정으로 가입하기';
 });
 
+// 환경변수에서 API URL 가져오기 (없으면 기본값)
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+
 const handleGoogleLogin = () => {
-  console.log('구글 로그인 시도');
+  // 구글 로그인 엔드포인트로 리다이렉트 (쿠키 인증 방식)
+  window.location.href = `${API_URL}/users/auth/google/start`;
 };
 
 const handleKakaoLogin = () => {
-  console.log('카카오 로그인 시도');
+  // 카카오 로그인 엔드포인트로 리다이렉트
+  window.location.href = `${API_URL}/users/auth/kakao/start`;
 };
 </script>
 

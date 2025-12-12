@@ -1,30 +1,40 @@
-<script setup lang="ts">
+<script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import BaseInput from '@/components/common/BaseInput.vue';
 import SocialLoginButtons from '@/components/auth/SocialLoginButtons.vue';
-// import { useAuthStore } from '@/stores/auth'; // Pinia Store가 있다면 주석 해제
+// import { authApi } from '@/services/auth.api'; // 백엔드 연결 전이라 주석 처리
 
 const router = useRouter();
-// const authStore = useAuthStore();
 
 const form = ref({
-  id: '',
+  username: '', 
   password: '',
   rememberMe: false
 });
 
 const handleLogin = async () => {
-  try {
-    // TODO: 실제 로그인 API 호출
-    // await authStore.login(form.value.id, form.value.password);
-    console.log('로그인 시도:', form.value);
-    alert('로그인 버튼이 클릭되었습니다. (API 연결 필요)');
-    router.push('/'); // 메인 페이지 이동
-  } catch (error) {
-    alert('로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.');
+  // 1. 입력 확인
+  if (!form.value.username || !form.value.password) {
+    return alert('아이디와 비밀번호를 입력해주세요.');
   }
+
+  // ✅ [테스트 모드] 백엔드 없이 강제 로그인
+  // 실제 API 통신 코드는 주석 처리해둡니다.
+  /*
+  try {
+    const { data } = await authApi.login({ ... });
+    localStorage.setItem('accessToken', data.token);
+    // ... 프로필 조회 로직 ...
+  } catch (error) { ... }
+  */
+
+  // 가짜 토큰 저장 (라우터 가드를 통과하기 위함)
+  localStorage.setItem('accessToken', 'test-token-12345');
+  
+  alert('⚡ 개발용 임시 로그인 성공! 메인으로 이동합니다.');
+  router.push('/'); 
 };
 </script>
 
@@ -38,17 +48,17 @@ const handleLogin = async () => {
     <form @submit.prevent="handleLogin">
       <BaseInput
         id="login-id"
-        label="아이디"
-        v-model="form.id"
-        placeholder="bangsky999@example.com"
+        label="ID"
+        v-model="form.username"
+        placeholder="janedoe@gmail.com"
       />
 
       <BaseInput
         id="login-password"
-        label="비밀번호"
+        label="PASSWORD"
         type="password"
         v-model="form.password"
-        placeholder="**********"
+        
       />
 
       <div class="flex justify-between items-center mb-8 text-xs">
@@ -63,7 +73,7 @@ const handleLogin = async () => {
         type="submit"
         class="w-full bg-[#1a1a1a] text-white font-bold py-4 rounded hover:bg-gray-800 transition-colors shadow-lg"
       >
-        로그인
+        로그인 (테스트용)
       </button>
     </form>
 
