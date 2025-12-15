@@ -22,7 +22,10 @@ export const authApi = {
   logout: () => instance.post("/users/auth/logout"),
 
   // 토큰 리프레시
-  refreshToken: () => instance.post("/users/auth/refresh"),
+  refreshToken: () => {
+    const refresh = localStorage.getItem('refresh_token');
+    return instance.post("/users/auth/refresh", { refresh });
+  },
 
   // 프로필 조회
   getProfile: () => instance.get("/users/profile"),
@@ -38,6 +41,9 @@ export const authApi = {
 
   // 투자 선호도 저장
   savePreference: (payload) => instance.post("/users/preference/save", payload),
+
+  // 포트폴리오 추천 요청
+  recommendPortfolio: (payload) => instance.post("/analysis/recommend/portfolio", payload),
 };
 
 // Interceptor로 401 발생 시 자동 갱신 처리
@@ -56,6 +62,11 @@ instance.interceptors.response.use(
         console.log("Token expired. Attempting refresh...");
         const refreshResponse = await authApi.refreshToken();
         const { access, refresh } = refreshResponse.data;
+
+        // 새로 받은 토큰 저장
+        if (access) localStorage.setItem('access_token', access);
+        if (refresh) localStorage.setItem('refresh_token', refresh);
+
         console.log("Refresh successful. New Access Token:", access);
         console.log("Refresh successful. New Refresh Token:", refresh);
 
