@@ -17,7 +17,7 @@ const router = createRouter({
     { path: '/', name: 'home', component: Home, meta: { requiresAuth: true } }, // ✅ 인증 필요 표시
     { path: '/auth/login', name: 'login', component: Login },
     { path: '/auth/signup', name: 'signup', component: Signup },
-    
+
     // ✅ 인증이 필요한 페이지들에 meta 추가
     { path: '/news', name: 'news', component: News, meta: { requiresAuth: true } },
     { path: '/user/mypage', name: 'mypage', component: MyPage, meta: { requiresAuth: true } },
@@ -30,25 +30,29 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to, from, next) => {
-  // 로컬 스토리지에서 토큰 확인
-  const token = localStorage.getItem('accessToken');
-  
+import { useAuthStore } from '@/stores/auth';
+
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore();
+
+  // 앱 시작 시 또는 새로고침 시 인증 상태 확인
+  if (!authStore.isAuthenticated && !authStore.user) {
+    await authStore.checkAuth();
+  }
+
   // 1. 이동하려는 페이지가 '인증이 필요한(requiresAuth)' 페이지인지 확인
   if (to.matched.some(record => record.meta.requiresAuth)) {
-    // 2. 토큰이 없으면 로그인 페이지로 튕겨냄
-    if (!token) {
-      // alert('로그인이 필요한 서비스입니다.'); // (선택사항) 알림 띄우기
+    // 2. 로그인 상태가 아니면 로그인 페이지로
+    if (!authStore.isAuthenticated) {
       next({ name: 'login' });
     } else {
-      // 3. 토큰이 있으면 통과
+      // 3. 로그인 상태면 통과
       next();
     }
   } else {
-    // 4. 인증이 필요 없는 페이지(로그인/회원가입)는 그냥 통과
-    
-    // (선택사항) 이미 로그인한 사람이 로그인 페이지 가려고 하면 메인으로 보냄
-    if (token && (to.name === 'login' || to.name === 'signup')) {
+    // 4. 인증이 필요 없는 페이지 (로그인/회원가입 등)
+    // 이미 로그인한 상태에서 로그인/회원가입 접근 시 홈으로 리다이렉트
+    if (authStore.isAuthenticated && (to.name === 'login' || to.name === 'signup')) {
       next({ name: 'home' });
     } else {
       next();

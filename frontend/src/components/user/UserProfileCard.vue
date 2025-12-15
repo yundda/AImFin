@@ -1,5 +1,8 @@
 <script setup>
-defineProps({
+import { computed } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+
+const props = defineProps({
   activeTab: {
     type: String,
     required: true
@@ -7,24 +10,38 @@ defineProps({
 });
 
 const emit = defineEmits(['update:activeTab', 'logout']);
+const authStore = useAuthStore();
 
 // 메뉴 목록
 const menus = [
   { id: 'account', icon: '⚙️', label: '계정 설정' },
   { id: 'propensity', icon: '📝', label: '투자 성향 설정' },
 ];
+
+const userInitial = computed(() => {
+  const name = authStore.user?.nickname || authStore.user?.email || 'U';
+  return name.charAt(0).toUpperCase();
+});
+
+const userName = computed(() => {
+  return authStore.user?.nickname || '닉네임 미설정';
+});
+
+const userEmail = computed(() => {
+  return authStore.user?.email || '';
+});
 </script>
 
 <template>
   <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center h-full">
     <!-- 프로필 이미지 -->
     <div class="w-24 h-24 mx-auto bg-[#536dfe] rounded-full flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-md">
-      윤
+      {{ userInitial }}
     </div>
     
     <!-- 이름 & 이메일 -->
-    <h2 class="text-xl font-bold text-gray-900 mb-1">윤강</h2>
-    <p class="text-sm text-gray-400 mb-8">yoonstrong@example.com</p>
+    <h2 class="text-xl font-bold text-gray-900 mb-1">{{ userName }}</h2>
+    <p class="text-sm text-gray-400 mb-8">{{ userEmail }}</p>
 
     <!-- 메뉴 리스트 -->
     <div class="space-y-2 text-left">

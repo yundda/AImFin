@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { authApi } from '@/services/auth.api'; // Import added
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
 
 const route = useRoute();
@@ -11,12 +12,22 @@ const amount = ref(''); // 초기값은 빈 문자열 (입력 유도)
 const selectedAssets = ref([]);
 
 const assetOptions = [
-  { id: 'stock', label: '국내주식', icon: '🇰🇷' },
-  { id: 'us_stock', label: '미국주식', icon: '🇺🇸' },
-  { id: 'bond', label: '채권', icon: '📜' },
-  { id: 'gold', label: '금/원자재', icon: '🥇' },
-  { id: 'etf', label: 'ETF', icon: '📊' },
-  { id: 'crypto', label: '가상화폐', icon: '🪙' }
+  { id: 'DOMESTIC_STOCK', label: '국내주식', icon: '🇰🇷' },
+  { id: 'GLOBAL_STOCK', label: '미국주식', icon: '🇺🇸' },
+  { id: 'DOMESTIC_BOND', label: '국내채권', icon: '📜' },
+  { id: 'GLOBAL_BOND', label: '해외채권', icon: '🌐' },
+  { id: 'ALTERNATIVE', label: '대체투자', icon: '💎' },
+  { id: 'FUND_GLB_MULTI', label: '펀드', icon: '📊' },
+  { id: 'CASH_EQ', label: '현금성자산', icon: '💰' }
+];
+
+// ✅ 투자 기간 상태 및 옵션
+const horizon = ref('');
+const horizonOptions = [
+  { id: 'LT_1Y', label: '1년 이하' },
+  { id: 'Y_1_3', label: '1~3년' },
+  { id: 'Y_3_5', label: '3~5년' },
+  { id: 'GTE_5Y', label: '5년 이상' }
 ];
 
 // ✅ 금액 더하기 함수 추가
@@ -34,18 +45,37 @@ const toggleAsset = (id) => {
   }
 };
 
-const generatePortfolio = () => {
+const generatePortfolio = async () => {
   if (!amount.value || amount.value <= 0) return alert('투자 금액을 입력해주세요.');
+  if (!horizon.value) return alert('투자 기간을 선택해주세요.');
   if (selectedAssets.value.length === 0) return alert('최소 1개 이상의 선호 상품을 선택해주세요.');
 
-  router.push({ 
-    name: 'portfolio-result', 
-    query: { 
-      type, 
-      amount: amount.value, 
-      assets: JSON.stringify(selectedAssets.value) 
-    } 
-  });
+  try {
+    const payload = {
+      amount_krw: Number(amount.value),
+      horizon_code: horizon.value,
+      include_products: selectedAssets.value
+    };
+
+    // API 호출
+    // authApi is already imported at the top level
+    
+    const response = await authApi.savePreference(payload);
+    
+    // 성공 시 결과 페이지로 이동 (쿼리 파라미터는 UI용, 실제 데이터는 백엔드에 저장됨)
+    router.push({ 
+      name: 'portfolio-result', 
+      query: { 
+        type, 
+        amount: amount.value,
+        horizon: horizon.value, 
+        assets: JSON.stringify(selectedAssets.value) 
+      } 
+    });
+  } catch (error) {
+    console.error('Preference save failed:', error);
+    alert('저장 중 오류가 발생했습니다.');
+  }
 };
 </script>
 
@@ -91,7 +121,23 @@ const generatePortfolio = () => {
           </div>
         </div>
 
-        <!-- 2. 선호 상품 -->
+        <!-- 2. 투자 기간 -->
+        <div class="mb-10">
+          <label class="block text-lg font-bold text-gray-900 mb-4">⏳ 투자를 얼마나 길게 할 계획인가요?</label>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <button 
+              v-for="opt in horizonOptions" 
+              :key="opt.id"
+              @click="horizon = opt.id"
+              class="py-4 rounded-xl border-2 font-bold transition-all hover:border-[#536dfe] hover:text-[#536dfe] active:scale-95"
+              :class="horizon === opt.id ? 'border-[#536dfe] bg-blue-50 text-[#536dfe]' : 'border-gray-200 text-gray-500'"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. 선호 상품 -->
         <div class="mb-12">
           <label class="block text-lg font-bold text-gray-900 mb-4">❤️ 포트폴리오에 꼭 담고 싶은 상품은?</label>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">

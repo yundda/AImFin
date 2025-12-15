@@ -1,12 +1,29 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+import { authApi } from '@/services/auth.api';
 import BaseInput from '@/components/common/BaseInput.vue';
+
+const authStore = useAuthStore();
 
 // 프로필 수정 폼 데이터
 const profile = ref({
-  name: '윤강',
-  email: 'yoonstrong@example.com'
+  name: '',
+  email: ''
 });
+
+// 초기 데이터 로드 및 변경 감지
+const initProfile = () => {
+  if (authStore.user) {
+    profile.value.name = authStore.user.nickname || '';
+    profile.value.email = authStore.user.email || '';
+  }
+};
+
+onMounted(initProfile);
+
+// Auth Store의 user가 변경(새로고침 등)될 때 갱신
+watch(() => authStore.user, initProfile, { deep: true });
 
 // 비밀번호 수정 폼 데이터
 const password = ref({
@@ -15,18 +32,32 @@ const password = ref({
   confirm: ''
 });
 
-const updateProfile = () => {
-  console.log('Update Profile:', profile.value);
-  alert('프로필 정보가 수정되었습니다.');
+const updateProfile = async () => {
+  try {
+    const newNickname = profile.value.name.trim();
+    if (!newNickname) return alert('이름(닉네임)을 입력해주세요.');
+
+    await authApi.updateNickname(newNickname);
+    
+    // 스토어 상태 업데이트 (API가 새 user 객체나 nickname을 리턴하면 좋겠지만, 
+    // 여기선 단순히 다시 fetch하거나 직접 수정)
+    await authStore.fetchUser(); 
+    
+    alert('프로필 정보가 수정되었습니다.');
+  } catch (error) {
+    console.error('Update failed:', error);
+    alert('수정 실패: ' + (error.response?.data?.detail || error.message));
+  }
 };
 
 const updatePassword = () => {
-  if (password.value.new !== password.value.confirm) {
-    alert('새 비밀번호가 일치하지 않습니다.');
-    return;
-  }
-  console.log('Update Password:', password.value);
-  alert('비밀번호가 변경되었습니다.');
+  alert('현재 비밀번호 변경 기능은 제공되지 않습니다 (Social Login User 등).');
+  // if (password.value.new !== password.value.confirm) {
+  //   alert('새 비밀번호가 일치하지 않습니다.');
+  //   return;
+  // }
+  // console.log('Update Password:', password.value);
+  // alert('비밀번호가 변경되었습니다.');
   password.value = { current: '', new: '', confirm: '' };
 };
 </script>
@@ -53,7 +84,7 @@ const updatePassword = () => {
         <form @submit.prevent="updateProfile" class="flex flex-col">
           <BaseInput 
             id="profile-name"
-            label="이름" 
+            label="이름 (닉네임)" 
             v-model="profile.name" 
             placeholder="이름을 입력하세요"
           />
@@ -63,6 +94,8 @@ const updatePassword = () => {
             type="email"
             v-model="profile.email" 
             placeholder="이메일을 입력하세요"
+            readonly
+            class="bg-gray-100 cursor-not-allowed text-gray-500"
           />
           
           <!-- ✅ 변경 3: mt-auto -> mt-8 (버튼을 바닥이 아닌 입력창 근처로) -->
@@ -75,7 +108,10 @@ const updatePassword = () => {
       </div>
 
       <!-- 2. 비밀번호 변경 -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col opacity-50 relative">
+        <!-- Disabled Overlay -->
+        <div class="absolute inset-0 z-10 bg-white/10 cursor-not-allowed" title="비밀번호 변경 미지원"></div>
+        
         <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
           <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center text-sm">🔒</div>
           <h3 class="text-sm font-bold text-gray-600">비밀번호 보안</h3>
@@ -88,6 +124,7 @@ const updatePassword = () => {
             type="password"
             v-model="password.current" 
             placeholder="현재 비밀번호"
+            disabled
           />
           
           <BaseInput 
@@ -96,6 +133,7 @@ const updatePassword = () => {
             type="password"
             v-model="password.new" 
             placeholder="영문, 숫자 포함 8자 이상"
+            disabled
           />
           <BaseInput 
             id="pw-confirm"
@@ -103,11 +141,12 @@ const updatePassword = () => {
             type="password"
             v-model="password.confirm" 
             placeholder="한 번 더 입력하세요"
+            disabled
           />
 
           <!-- 버튼 위치 조정 -->
           <div class="mt-8 text-right">
-            <button type="submit" class="px-6 py-2.5 bg-[#536dfe] text-white text-sm font-bold rounded-lg hover:bg-[#4059e0] transition-colors shadow-md w-full sm:w-auto">
+            <button disabled type="submit" class="px-6 py-2.5 bg-[#536dfe] text-white text-sm font-bold rounded-lg hover:bg-[#4059e0] transition-colors shadow-md w-full sm:w-auto cursor-not-allowed">
               비밀번호 변경
             </button>
           </div>

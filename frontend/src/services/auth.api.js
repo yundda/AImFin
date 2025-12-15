@@ -10,7 +10,65 @@ const instance = axios.create({
   withCredentials: true, // ✅ 쿠키 전송 허용
 });
 
-// 요청 인터셉터 (더 이상 Bearer 토큰을 헤더에 넣을 필요 없음 - 쿠키 사용)
-// instance.interceptors.request.use(...)
+// Auth API 객체
+export const authApi = {
+  // 회원가입
+  signup: (userData) => instance.post("/users/auth/signup", userData),
+
+  // 로그인
+  login: (credentials) => instance.post("/users/auth/login", credentials),
+
+  // 로그아웃
+  logout: () => instance.post("/users/auth/logout"),
+
+  // 토큰 리프레시
+  refreshToken: () => instance.post("/users/auth/refresh"),
+
+  // 프로필 조회
+  getProfile: () => instance.get("/users/profile"),
+
+  // 닉네임 수정
+  updateNickname: (nickname) => instance.patch("/users/profile/nickname", { nickname }),
+
+  // 설문 결과 저장
+  saveSurvey: (payload) => instance.post("/users/survey/save", payload),
+
+  // 최신 설문 결과 조회
+  getSurvey: () => instance.get("/users/survey/current"),
+
+  // 투자 선호도 저장
+  savePreference: (payload) => instance.post("/users/preference/save", payload),
+};
+
+// Interceptor로 401 발생 시 자동 갱신 처리
+instance.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    // 401 에러이고, 아직 재시도하지 않은 요청이며, 리프레시 요청 자체가 아닐 때
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes('/auth/refresh')
+    ) {
+      originalRequest._retry = true;
+      try {
+        console.log("Token expired. Attempting refresh...");
+        const refreshResponse = await authApi.refreshToken();
+        const { access, refresh } = refreshResponse.data;
+        console.log("Refresh successful. New Access Token:", access);
+        console.log("Refresh successful. New Refresh Token:", refresh);
+
+        console.log("Retrying original request...");
+        return instance(originalRequest);
+      } catch (refreshError) {
+        console.error("RefreshToken failed:", refreshError);
+        // 리프레시 실패 시 로그아웃 처리나 로그인 페이지 이동 등을 수행할 수 있음
+        return Promise.reject(refreshError);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default instance;

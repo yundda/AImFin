@@ -1,46 +1,107 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { authApi } from '@/services/auth.api';
 
 const router = useRouter();
 const currentStep = ref(0);
 const answers = ref({});
 
-// ✅ 질문 데이터 (점수 매핑 포함)
+// 질문 데이터 (백엔드 코드 매핑)
 const questions = [
-  // 1~2. Experience (가중치 0.2)
+  // 1. Products (List)
   {
-    id: 1, category: '투자 경험', type: 'multi',
+    id: 1, field: 'products', category: '투자 경험', type: 'multi',
     question: '투자 경험이 있는 상품을 모두 선택해주세요.',
     options: [
-      { label: '예·적금', score: 0 }, { label: '채권', score: 1 },
-      { label: '주식·ETF', score: 2 }, { label: '펀드', score: 2 },
-      { label: '파생상품(ELS 등)', score: 3 }, { label: '해외상품', score: 3 }
+      { label: '예·적금', value: 'deposit' },
+      { label: '채권', value: 'bond' },
+      { label: '주식·ETF', value: 'stock_etf' },
+      { label: '펀드', value: 'fund' },
+      { label: '파생상품(ELS 등)', value: 'derivatives' },
+      { label: '해외상품', value: 'overseas' }
     ]
   },
+  // 2. History (Period & Freq) -> Maps to two fields
   {
     id: 2, category: '투자 기간',
     question: '지금까지의 투자 기간과 빈도는?',
     options: [
-      { label: '1년 미만 / 거의 없음', score: 0 },
-      { label: '1~3년 / 연 1~3회', score: 1 },
-      { label: '3년 이상 / 월 1회 이상', score: 2 }
+      { label: '1년 미만 / 거의 없음', value: { period: '<1y', freq: 'none' } },
+      { label: '1~3년 / 연 1~3회', value: { period: '1-3y', freq: 'year_1_3' } },
+      { label: '3년 이상 / 월 1회 이상', value: { period: '>=3y', freq: 'month_1plus' } }
     ]
   },
-  // 3~6. Afford (가중치 0.2)
-  { id: 3, category: '연 소득', question: '연 소득 수준은?', options: [{ label: '3천만 미만', score: 0 }, { label: '3천~7천', score: 1 }, { label: '7천~1억', score: 2 }, { label: '1억 이상', score: 3 }] },
-  { id: 4, category: '자산 규모', question: '총 금융자산 규모는?', options: [{ label: '5천만 미만', score: 0 }, { label: '5천~1억', score: 1 }, { label: '1억~5억', score: 2 }, { label: '5억 이상', score: 3 }] },
-  { id: 5, category: '부채 비중', question: '자산 대비 부채 비중은?', options: [{ label: '상당히 있음', score: 0 }, { label: '소폭 있음', score: 2 }, { label: '없음', score: 3 }] },
-  { id: 6, category: '투자 비중', question: '전체 자산 중 투자금 비중은?', options: [{ label: '50% 이상', score: 0 }, { label: '30~50%', score: 1 }, { label: '10~30%', score: 2 }, { label: '10% 미만', score: 3 }] },
-  // 7~8. Purpose (가중치 0.2)
-  { id: 7, category: '투자 목적', question: '이번 투자의 주된 목적은?', options: [{ label: '자산 보존', score: 0 }, { label: '예금+α 수익', score: 1 }, { label: '자산 증식', score: 2 }, { label: '적극적 수익', score: 3 }, { label: '단기 고수익', score: 4 }] },
-  { id: 8, category: '목표 수익률', question: '기대하는 연 수익률은?', options: [{ label: '3% 이하', score: 0 }, { label: '3~5%', score: 1 }, { label: '5~10%', score: 2 }, { label: '10% 이상', score: 3 }] },
-  // 9~11. Risk (가중치 0.3)
-  { id: 9, category: '손실 대응', question: '-10% 손실 시 대응은?', options: [{ label: '전량 매도', score: 0 }, { label: '일부 매도', score: 1 }, { label: '보유', score: 2 }, { label: '추가 매수', score: 3 }] },
-  { id: 10, category: '변동성', question: '변동성이 큰 상품에 대한 생각은?', options: [{ label: '매우 불안', score: 0 }, { label: '다소 불안', score: 1 }, { label: '괜찮음', score: 2 }, { label: '기회라고 생각', score: 3 }] },
-  { id: 11, category: '위험 선호', question: '원금 손실 감수하고 고수익 기대?', options: [{ label: '전혀 아님', score: 0 }, { label: '아님', score: 1 }, { label: '그렇다', score: 2 }, { label: '매우 그렇다', score: 3 }] },
-  // 12. Period (가중치 0.1)
-  { id: 12, category: '투자 기간', question: '투자 가능한 기간은?', options: [{ label: '1년 미만', score: 0 }, { label: '1~3년', score: 1 }, { label: '3~5년', score: 2 }, { label: '5년 이상', score: 3 }] }
+  // 3. Income
+  { id: 3, field: 'income', category: '연 소득', question: '연 소득 수준은?', options: [
+    { label: '3천만 미만', value: '<30m' },
+    { label: '3천~7천', value: '30_70m' },
+    { label: '7천~1억', value: '70_100m' },
+    { label: '1억 이상', value: '>=100m' }
+  ]},
+  // 4. Wealth
+  { id: 4, field: 'wealth', category: '자산 규모', question: '총 금융자산 규모는?', options: [
+    { label: '5천만 미만', value: '<50m' },
+    { label: '5천~1억', value: '50_100m' },
+    { label: '1억~5억', value: '100m_500m' },
+    { label: '5억 이상', value: '>=500m' }
+  ]},
+  // 5. Debt Ratio (Note: Values inferred from backend logic)
+  { id: 5, field: 'debt_ratio', category: '부채 비중', question: '자산 대비 부채 비중은?', options: [
+    { label: '상당히 있음', value: 'gte_50pct' }, // Score 0
+    { label: '소폭 있음', value: 'lt_50pct' },     // Score 2
+    { label: '없음', value: 'none' }               // Score 3
+  ]},
+  // 6. Invest Share
+  { id: 6, field: 'invest_share', category: '투자 비중', question: '전체 자산 중 투자금 비중은?', options: [
+    { label: '50% 이상', value: '>=50pct' },
+    { label: '30~50%', value: '30_50pct' },
+    { label: '10~30%', value: '10_30pct' },
+    { label: '10% 미만', value: '<10pct' }
+  ]},
+  // 7. Purpose
+  { id: 7, field: 'purpose', category: '투자 목적', question: '이번 투자의 주된 목적은?', options: [
+    { label: '자산 보존', value: 'capital_preservation' },
+    { label: '예금+α 수익', value: 'above_deposit' },
+    { label: '자산 증식', value: 'market_return' },
+    { label: '적극적 수익', value: 'above_market' },
+    { label: '단기 고수익', value: 'trading_high_risk' }
+  ]},
+  // 8. Target Return
+  { id: 8, field: 'target_return', category: '목표 수익률', question: '기대하는 연 수익률은?', options: [
+    { label: '3% 이하', value: '<=3' },
+    { label: '3~5%', value: '3_5' },
+    { label: '5~10%', value: '5_10' },
+    { label: '10% 이상', value: '>=10' }
+  ]},
+  // 9. Loss Response
+  { id: 9, field: 'loss_response', category: '손실 대응', question: '-10% 손실 시 대응은?', options: [
+    { label: '전량 매도', value: 'sell_all' },
+    { label: '일부 매도', value: 'sell_partial' },
+    { label: '보유', value: 'hold' },
+    { label: '추가 매수', value: 'buy_more' }
+  ]},
+  // 10. Volatility Feel
+  { id: 10, field: 'volatility_feel', category: '변동성', question: '변동성이 큰 상품에 대한 생각은?', options: [
+    { label: '매우 불안', value: 'very_anxious' },
+    { label: '다소 불안', value: 'somewhat_anxious' },
+    { label: '괜찮음', value: 'ok' },
+    { label: '기회라고 생각', value: 'opportunity' }
+  ]},
+  // 11. Loss for Return
+  { id: 11, field: 'loss_for_return', category: '위험 선호', question: '원금 손실 감수하고 고수익 기대?', options: [
+    { label: '전혀 아님', value: 'never' },
+    { label: '아님', value: 'no' },
+    { label: '그렇다', value: 'yes' },
+    { label: '매우 그렇다', value: 'strong_yes' }
+  ]},
+  // 12. Horizon
+  { id: 12, field: 'horizon', category: '투자 기간', question: '투자 가능한 기간은?', options: [
+    { label: '1년 미만', value: '<1y' },
+    { label: '1~3년', value: '1_3y' },
+    { label: '3~5년', value: '3_5y' },
+    { label: '5년 이상', value: '>=5y' }
+  ]}
 ];
 
 const progress = computed(() => ((currentStep.value + 1) / questions.length) * 100);
@@ -49,14 +110,32 @@ const currentQ = computed(() => questions[currentStep.value]);
 const handleSelect = (option) => {
   if (currentQ.value.type === 'multi') {
     const currentAnswers = answers.value[currentQ.value.id] || [];
-    const idx = currentAnswers.findIndex(item => item.label === option.label);
-    if (idx > -1) currentAnswers.splice(idx, 1);
-    else currentAnswers.push(option);
+    // 옵션 자체가 아니라 옵션의 값(value)을 저장
+    const idx = currentAnswers.findIndex(v => v === option.value);
+    
+    if (idx > -1) {
+      currentAnswers.splice(idx, 1);
+    } else {
+      currentAnswers.push(option.value);
+    }
     answers.value[currentQ.value.id] = currentAnswers;
   } else {
-    answers.value[currentQ.value.id] = option;
+    // 단일 선택도 값(value)을 저장
+    answers.value[currentQ.value.id] = option.value;
     nextStep();
   }
+};
+
+const isSelected = (option) => {
+  const ans = answers.value[currentQ.value.id];
+  if (currentQ.value.type === 'multi') {
+    return Array.isArray(ans) && ans.includes(option.value);
+  }
+  // 객체(Q2)인 경우 참조 비교가 안될 수 있으므로 JSON 문자열 비교
+  if (typeof option.value === 'object') {
+     return JSON.stringify(ans) === JSON.stringify(option.value);
+  }
+  return ans === option.value;
 };
 
 const nextStep = () => {
@@ -69,37 +148,44 @@ const prevStep = () => {
   else router.back();
 };
 
-// ✅ 성향 진단 알고리즘 구현
-const calculateResult = () => {
-  const getScore = (id) => {
-    const ans = answers.value[id];
-    // 복수 선택은 합산하되 최대 6점으로 제한
-    if (Array.isArray(ans)) return Math.min(ans.reduce((acc, cur) => acc + cur.score, 0), 6);
-    return ans ? ans.score : 0;
-  };
-
-  // 영역별 점수 계산 (만점 기준 환산)
-  const experience = (getScore(1) + getScore(2)) / 8 * 20; 
-  const afford = (getScore(3) + getScore(4) + getScore(5) + getScore(6)) / 12 * 20;
-  const purpose = (getScore(7) + getScore(8)) / 7 * 20;
-  const risk = (getScore(9) + getScore(10) + getScore(11)) / 9 * 30;
-  const period = (getScore(12)) / 3 * 10;
-
-  const totalScore = experience + afford + purpose + risk + period;
-  
-  let type = '';
-  if (totalScore <= 25) type = 'Anjung';
-  else if (totalScore <= 45) type = 'AnjungChugu';
-  else if (totalScore <= 65) type = 'Balanced';
-  else if (totalScore <= 80) type = 'Jeogeug';
-  else type = 'Aggressive';
-
-  return { score: Math.round(totalScore), type };
-};
-
-const finishSurvey = () => {
-  const result = calculateResult();
-  router.push({ name: 'survey-result', query: { type: result.type, score: result.score } });
+const finishSurvey = async () => {
+  try {
+    // Payload 구성
+    const payload = {};
+    
+    // 1. Products
+    payload.products = answers.value[1] || [];
+    
+    // 2. History (Split field)
+    const historyAns = answers.value[2];
+    if (historyAns) {
+      payload.history_period = historyAns.period;
+      payload.history_freq = historyAns.freq;
+    }
+    
+    // 3~12. Direct Mapping
+    for (let i = 3; i <= 12; i++) {
+       const q = questions[i-1]; // index is id-1
+       if (q && q.field) {
+         payload[q.field] = answers.value[q.id];
+       }
+    }
+    
+    // API Call
+    const response = await authApi.saveSurvey(payload);
+    const { profile, total_score } = response.data;
+    
+    // Map Backend Profile to Frontend Keys (Legacy Support for SurveyResult.vue)
+    // Pass raw backend profile code to result page
+    router.push({ 
+      name: 'survey-result', 
+      query: { type: profile, score: total_score } 
+    });
+    
+  } catch (error) {
+    console.error('Survey submission failed:', error);
+    alert('설문 제출 중 오류가 발생했습니다: ' + (error.response?.data?.detail || error.message));
+  }
 };
 </script>
 
@@ -130,7 +216,7 @@ const finishSurvey = () => {
           @click="handleSelect(opt)"
           class="w-full text-left p-5 rounded-2xl border transition-all active:scale-[0.98]"
           :class="[
-            currentQ.type === 'multi' && answers[currentQ.id]?.some(a => a.label === opt.label) 
+            isSelected(opt)
               ? 'border-[#536dfe] bg-blue-50 text-[#536dfe] font-bold' 
               : 'border-gray-200 hover:border-[#536dfe] text-gray-700'
           ]"
