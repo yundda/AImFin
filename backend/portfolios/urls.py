@@ -2,7 +2,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("ping", views.portfolio_ping),  # GET /api/portfolio/ping
     path("save", views.portfolio_save, name="portfolio.save"),  # POST /api/portfolio/save
     path("list", views.portfolio_list, name="portfolio.list"),  # GET /api/portfolio/list
     path("representative", views.portfolio_representative, name="portfolio.representative"),  # GET/POST
