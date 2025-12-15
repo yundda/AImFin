@@ -41,6 +41,11 @@ const userEmail = computed(() => {
     
     <!-- 이름 & 이메일 -->
     <h2 class="text-xl font-bold text-gray-900 mb-1">{{ userName }}</h2>
+    <div v-if="authStore.user?.survey_profile_label" class="mb-2">
+      <span class="inline-block px-2.5 py-0.5 bg-blue-100 text-[#536dfe] text-xs font-bold rounded-lg border border-blue-200">
+        {{ authStore.user.survey_profile_label }}
+      </span>
+    </div>
     <p class="text-sm text-gray-400 mb-8">{{ userEmail }}</p>
 
     <!-- 메뉴 리스트 -->

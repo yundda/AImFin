@@ -12,13 +12,13 @@ const amount = ref(''); // 초기값은 빈 문자열 (입력 유도)
 const selectedAssets = ref([]);
 
 const assetOptions = [
-  { id: 'DOMESTIC_STOCK', label: '국내주식', icon: '🇰🇷' },
-  { id: 'GLOBAL_STOCK', label: '미국주식', icon: '🇺🇸' },
-  { id: 'DOMESTIC_BOND', label: '국내채권', icon: '📜' },
-  { id: 'GLOBAL_BOND', label: '해외채권', icon: '🌐' },
-  { id: 'ALTERNATIVE', label: '대체투자', icon: '💎' },
-  { id: 'FUND_GLB_MULTI', label: '펀드', icon: '📊' },
-  { id: 'CASH_EQ', label: '현금성자산', icon: '💰' }
+  { id: 'STOCKS_KR', label: '국내주식', icon: '🇰🇷' },
+  { id: 'STOCKS_GLB', label: '미국주식', icon: '🇺🇸' },
+  { id: 'BONDS_KR', label: '국내채권', icon: '📜' },
+  { id: 'BONDS_GLB', label: '해외채권', icon: '🌐' },
+  { id: 'ALTERNATIVES', label: '대체투자', icon: '💎' },
+  { id: 'FUNDS', label: '펀드', icon: '📊' },
+  { id: 'CASH', label: '현금성자산', icon: '💰' }
 ];
 
 // ✅ 투자 기간 상태 및 옵션
