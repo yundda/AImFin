@@ -21,7 +21,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 SECRET_KEY = env("SECRET_KEY", default="dev-secret-change-me")
 DEBUG = env.bool("DEBUG", default=True)
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "localhost"])
 
 
 
@@ -157,7 +157,7 @@ SIMPLE_JWT = {
 # CORS (개발용)
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",    # Vite
-    "http://127.0.0.1:5173",
+    "http://localhost:5173",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -187,7 +187,7 @@ CONTENT_SECURITY_POLICY = {
         "connect-src": (
             "'self'",
             "http://localhost:5173",
-            "http://127.0.0.1:5173",
+            "http://localhost:5173",
         ),
 
         # (선택) 프레임/오브젝트/미디어 등 필요 시 추가
@@ -217,14 +217,14 @@ SESSION_CACHE_ALIAS = "default"
 AUTH_USER_MODEL = "users.User"
 
 # OAuth/프런트 URL (소셜 로그인용)
-BASE_URL = env("BASE_URL", default="http://127.0.0.1:8000")
+BASE_URL = env("BASE_URL", default="http://localhost:8000")
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
 GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", default="")
 # ... 기존 import/environ 세팅 하단
 KAKAO_CLIENT_ID = env("KAKAO_CLIENT_ID", default="")
 KAKAO_CLIENT_SECRET = env("KAKAO_CLIENT_SECRET", default="")
-KAKAO_REDIRECT_URI = env("KAKAO_REDIRECT_URI", default="http://127.0.0.1:8000/api/users/auth/kakao/callback")
+KAKAO_REDIRECT_URI = env("KAKAO_REDIRECT_URI", default="http://localhost:8000/api/users/auth/kakao/callback")
 
 
 # --- LLM/GMS 설정 (기존 변수와 호환) ---
