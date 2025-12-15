@@ -113,6 +113,15 @@ const savePortfolio = () => {
 const expectedReturn = computed(() => resultData.value?.metrics?.expected_return_pct || 0);
 const riskScore = computed(() => resultData.value?.metrics?.risk_score || 0);
 const rationale = computed(() => resultData.value?.rationale || '');
+const assetLabels = {
+  STOCKS_KR: '국내 주식',
+  STOCKS_GLB: '미국 주식',
+  BONDS_KR: '국내 채권',
+  BONDS_GLB: '해외 채권',
+  ALTERNATIVES: '대체투자',
+  FUNDS: '펀드',
+  CASH: '현금성 자산'
+};
 </script>
 
 <template>
@@ -167,7 +176,7 @@ const rationale = computed(() => resultData.value?.rationale || '');
         <!-- 자산 배분 리스트 -->
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm mb-12 bg-gray-50 p-6 rounded-xl">
           <div v-for="item in resultData.final_allocations" :key="item.bucket" class="flex justify-between items-center bg-white px-3 py-2 rounded border border-gray-100">
-            <span class="font-medium text-gray-600">{{ item.bucket }}</span>
+            <span class="font-medium text-gray-600">{{ assetLabels[item.bucket] || item.bucket }}</span>
             <span class="font-bold text-[#536dfe]">{{ item.weight_pct }}%</span>
           </div>
         </div>
