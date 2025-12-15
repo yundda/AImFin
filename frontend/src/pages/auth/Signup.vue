@@ -4,6 +4,11 @@ import AuthLayout from '@/layouts/AuthLayout.vue';
 import BaseInput from '@/components/common/BaseInput.vue';
 import SocialLoginButtons from '@/components/auth/SocialLoginButtons.vue';
 
+import { useRouter } from 'vue-router';
+import { authApi } from '@/services/auth.api';
+
+const router = useRouter();
+
 const form = ref({
   email: '',
   password: '',
@@ -15,9 +20,32 @@ const handleSignup = async () => {
     alert('이용약관에 동의해주세요.');
     return;
   }
-  // TODO: 실제 회원가입 API 호출
-  console.log('회원가입 정보:', form.value);
-  alert('계정 생성 요청이 전송되었습니다.');
+  
+  try {
+    await authApi.signup({
+      email: form.value.email,
+      password: form.value.password
+    });
+    alert('회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.');
+    router.push('/login');
+  } catch (error) {
+    console.error('Signup failed:', error);
+    // DRF returns object with field errors, e.g. { email: [...], non_field_errors: [...] }
+    const errorData = error.response?.data || {};
+    let msg = '회원가입 실패';
+    
+    if (Object.keys(errorData).length > 0) {
+      // Create a readable error message from the object
+      const details = Object.entries(errorData)
+        .map(([key, msgs]) => `${key}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+        .join('\n');
+      msg += `:\n${details}`;
+    } else {
+      msg += `: ${error.message}`;
+    }
+    
+    alert(msg);
+  }
 };
 </script>
 

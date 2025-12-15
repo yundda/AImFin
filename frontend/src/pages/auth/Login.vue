@@ -4,9 +4,10 @@ import { useRouter } from 'vue-router';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import BaseInput from '@/components/common/BaseInput.vue';
 import SocialLoginButtons from '@/components/auth/SocialLoginButtons.vue';
-// import { authApi } from '@/services/auth.api'; // 백엔드 연결 전이라 주석 처리
+import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter();
+const authStore = useAuthStore();
 
 const form = ref({
   username: '', 
@@ -20,21 +21,13 @@ const handleLogin = async () => {
     return alert('아이디와 비밀번호를 입력해주세요.');
   }
 
-  // ✅ [테스트 모드] 백엔드 없이 강제 로그인
-  // 실제 API 통신 코드는 주석 처리해둡니다.
-  /*
   try {
-    const { data } = await authApi.login({ ... });
-    localStorage.setItem('accessToken', data.token);
-    // ... 프로필 조회 로직 ...
-  } catch (error) { ... }
-  */
-
-  // 가짜 토큰 저장 (라우터 가드를 통과하기 위함)
-  localStorage.setItem('accessToken', 'test-token-12345');
-  
-  alert('⚡ 개발용 임시 로그인 성공! 메인으로 이동합니다.');
-  router.push('/'); 
+    await authStore.login(form.value.username, form.value.password);
+    router.push('/'); 
+  } catch (error) {
+    console.error('Login failed:', error);
+    alert('로그인 실패: ' + (error.response?.data?.detail || '아이디 또는 비밀번호를 확인해주세요.'));
+  }
 };
 </script>
 
@@ -73,7 +66,7 @@ const handleLogin = async () => {
         type="submit"
         class="w-full bg-[#1a1a1a] text-white font-bold py-4 rounded hover:bg-gray-800 transition-colors shadow-lg"
       >
-        로그인 (테스트용)
+        로그인
       </button>
     </form>
 
