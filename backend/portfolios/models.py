@@ -21,9 +21,6 @@ def q2(x: Decimal | float | int) -> Decimal:
 
 
 class Portfolio(models.Model):
-    class Source(models.TextChoices):
-        AI = "AI", "AI"
-        MANUAL = "MANUAL", "MANUAL"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -32,7 +29,6 @@ class Portfolio(models.Model):
     )
 
     name = models.CharField(max_length=120, blank=True, default="")
-    source = models.CharField(max_length=12, choices=Source.choices, default=Source.AI)
 
     # 요약 메타
     amount_krw = models.BigIntegerField()
