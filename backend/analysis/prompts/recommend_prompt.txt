@@ -3,17 +3,17 @@
 권장 포트폴리오를 설계하세요. 반드시 JSON만 출력합니다.
 
 [사용자 정보]
-- 위험 성향: {risk_profile} ({risk_label})
-- 투자 금액: {amount_krw}
-- 투자 기간(설명): {horizon_desc}  ← 이 문구를 서술에 그대로 사용
-- 반드시 포함해야 하는 버킷: {must_buckets}
+- 위험 성향: $profile ($profile_label)
+- 투자 금액: $amount_krw
+- 투자 기간(설명): $horizon_desc  ← 이 문구를 서술에 그대로 사용
+- 반드시 포함해야 하는 버킷: $must_buckets
 
 [버킷 정책 요약]
-{policy_summary}
+$policy_summary
 (각 버킷 비중은 min ≤ weight_pct ≤ max, 총합은 정확히 100.00%)
 
 [버킷별 편입 가능 종목 코드]
-{eligible_assets_by_bucket}
+$eligible_assets_by_bucket
 (여기에 없는 코드는 사용 금지. 어떤 버킷은 비어 있을 수 있음)
 
 [출력(JSON만, 한글 텍스트 허용)]
@@ -32,7 +32,7 @@
     }
   ],
   "rationale": "최종 'final_allocations'의 실제 비중 수치를 정확히 인용하여 설명. 
-                {horizon_desc} 문구를 그대로 사용. 
+                $horizon_desc 문구를 그대로 사용. 
                 필수 버킷 각각의 최종 비중을 숫자로 언급. 
                 정책 제약을 어떻게 만족했는지, 성장성과 방어의 균형을 4~7문장으로 기술.",
   "summary": "두세 문장 핵심 요약(예: 주식/채권 축, 방어/성장 균형, 현금 쿠션). 
@@ -45,6 +45,6 @@
 - must_buckets는 최소 min 이상 배정
 - assets 총합=버킷 weight_pct (assets 제공 시)
 - 서술에 등장하는 모든 숫자는 final_allocations의 실제 수치와 일치
-- {horizon_desc}는 그대로 사용, 임의 변형 금지
+- $horizon_desc 는 그대로 사용, 임의 변형 금지
 - 허용 목록에 없는 종목 코드는 사용 금지
 - 불필요한 텍스트 출력 금지(JSON만)

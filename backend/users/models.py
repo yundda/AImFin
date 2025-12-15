@@ -3,6 +3,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
+from assets.enums import AssetType
 
 
 class User(AbstractUser):
@@ -118,14 +119,16 @@ class HorizonCode(models.TextChoices):
     GTE_5Y = "GTE_5Y", "5년 이상"
 
 
+# users/models.py
+
 class ProductCode(models.TextChoices):
-    DOMESTIC_STOCK = "DOMESTIC_STOCK", "국내 주식"
-    GLOBAL_STOCK = "GLOBAL_STOCK", "해외 주식"
-    DOMESTIC_BOND = "DOMESTIC_BOND", "국내 채권"
-    GLOBAL_BOND = "GLOBAL_BOND", "해외 채권"
-    ALTERNATIVE = "ALTERNATIVE", "대체투자(금·리츠·원자재)"
-    FUND_GLB_MULTI = "FUND_GLB_MULTI", "펀드(글로벌 인컴/멀티에셋)"
-    CASH_EQ = "CASH_EQ", "현금성(MMF)"
+    STOCKS_KR     = AssetType.STOCKS_KR,    "국내 주식"
+    STOCKS_GLB    = AssetType.STOCKS_GLB,   "해외 주식"
+    BONDS_KR      = AssetType.BONDS_KR,     "국내 채권"
+    BONDS_GLB     = AssetType.BONDS_GLB,    "해외 채권"
+    FUNDS         = AssetType.FUNDS,        "펀드(글로벌 인컴/멀티에셋)"
+    ALTERNATIVES  = AssetType.ALTERNATIVES, "대체투자(금·리츠·원자재)"
+    CASH          = AssetType.CASH,         "현금성(MMF/예금)"
 
 
 class InvestmentPreference(models.Model):

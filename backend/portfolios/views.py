@@ -37,12 +37,7 @@ def portfolio_list(request):
     목록
     - 응답: List[PortfolioListSerializer]
     """
-    qs = (
-        Portfolio.objects
-        .filter(user=request.user)
-        .select_related("metrics")
-        .prefetch_related("allocations__assets")
-    )
+    qs = Portfolio.objects.filter(user=request.user)
     data = PortfolioListSerializer(qs, many=True).data
     return Response(data, status=status.HTTP_200_OK)
 
@@ -54,11 +49,7 @@ def portfolio_detail(request, portfolio_id: int):
     상세
     - 응답: PortfolioDetailSerializer
     """
-    p = get_object_or_404(
-        Portfolio.objects.select_related("metrics").prefetch_related("allocations__assets"),
-        pk=portfolio_id,
-        user=request.user,
-    )
+    p = get_object_or_404(Portfolio.objects.filter(user=request.user), pk=portfolio_id)
     return Response(PortfolioDetailSerializer(p).data, status=status.HTTP_200_OK)
 
 
@@ -70,13 +61,7 @@ def portfolio_representative(request):
     POST : { "id": <portfolio_id> }로 대표 지정
     """
     if request.method == "GET":
-        p = (
-            Portfolio.objects
-            .filter(user=request.user, is_primary=True)
-            .select_related("metrics")
-            .prefetch_related("allocations__assets")
-            .first()
-        )
+        p = Portfolio.objects.filter(user=request.user, is_representative=True).first()
         if not p:
             return Response({"detail": "대표 포트폴리오가 없습니다."}, status=status.HTTP_404_NOT_FOUND)
         return Response(PortfolioDetailSerializer(p).data, status=status.HTTP_200_OK)
@@ -87,5 +72,5 @@ def portfolio_representative(request):
         return Response({"detail": "id is required"}, status=status.HTTP_400_BAD_REQUEST)
 
     p = get_object_or_404(Portfolio, pk=pid, user=request.user)
-    p.set_primary()
-    return Response({"ok": True, "id": p.id, "is_primary": p.is_primary}, status=status.HTTP_200_OK)
+    p.set_representative()
+    return Response({"ok": True, "id": p.id, "is_representative": p.is_representative}, status=status.HTTP_200_OK)
