@@ -2,29 +2,31 @@
 from __future__ import annotations
 
 from decimal import Decimal, ROUND_HALF_UP
-from typing import List
+from typing import List, Dict, Any
 
 from django.db import transaction
 from rest_framework import serializers
 
-from portfolios.models import (
-    Portfolio, PortfolioAllocation, PortfolioAsset, PortfolioMetrics
-)
+from portfolios.models import Portfolio
 from assets.enums import AssetType
-from assets.models import Asset  # code / asset_type / is_enabled 가정
+from assets.models import Asset  # code / asset_type / is_enabled
 
-# 서버 계산 지표
+# 서버 계산 지표(없어도 동작)
 try:
     from analysis.services.metrics import compute_portfolio_metrics
-except Exception:
+except Exception:  # pragma: no cover
     compute_portfolio_metrics = None
 
 
-def q2f(x: float | int | Decimal) -> float:
+# ---------- 공통 유틸 ----------
+def q2f(x: float | int | Decimal | None) -> float:
+    if x is None:
+        return 0.0
     d = Decimal(str(x)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     return float(d)
 
 
+# ---------- 입력 스키마 ----------
 class PortfolioAssetInSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=32)
     weight_pct = serializers.FloatField(min_value=0.0)
@@ -36,7 +38,7 @@ class PortfolioAllocationInSerializer(serializers.Serializer):
     assets = PortfolioAssetInSerializer(many=True, required=False)
 
     def validate(self, data):
-        # assets 합계 == bucket weight_pct
+        # (1) assets 합계 == bucket weight_pct (소수 2자리 기준)
         assets = data.get("assets") or []
         bw = q2f(data["weight_pct"])
         if assets:
@@ -45,7 +47,8 @@ class PortfolioAllocationInSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     f"assets 합({s:.2f}) != 버킷 비중({bw:.2f})"
                 )
-        # 코드-버킷 정합성 검증(존재/타입)
+
+        # (2) 자산 코드 존재/활성 + 버킷 일치
         for a in assets:
             code = a["code"]
             qs = Asset.objects.filter(code=code, is_enabled=True)
@@ -67,6 +70,7 @@ class PortfolioCreateSerializer(serializers.Serializer):
     profile_label = serializers.CharField(max_length=64)
     horizon_desc = serializers.CharField(max_length=64)
 
+    # 정책/선호
     must_buckets = serializers.ListField(
         child=serializers.ChoiceField(choices=AssetType.choices),
         allow_empty=True,
@@ -79,106 +83,84 @@ class PortfolioCreateSerializer(serializers.Serializer):
     summary = serializers.CharField(required=False, allow_blank=True, default="")
     risks = serializers.CharField(required=False, allow_blank=True, default="")
 
-    # 원문/로그(선택)
-    ai_proposed_allocations = serializers.ListField(child=serializers.DictField(), required=False)
-    corrections = serializers.ListField(child=serializers.CharField(), required=False)
-
     # 최종 구성(필수)
     allocations = PortfolioAllocationInSerializer(many=True)
 
-    # 저장 옵션
-    set_primary = serializers.BooleanField(required=False, default=False)
+    # 저장 옵션 (대표 지정)
+    set_representative = serializers.BooleanField(required=False, default=False)
 
     def validate_allocations(self, value: List[dict]):
-        # 총합 100.00
+        # (A) 총합 100.00 고정
         total = q2f(sum(row.get("weight_pct", 0) for row in value))
         if abs(total - 100.00) > 0.01:
             raise serializers.ValidationError(f"버킷 합계가 100.00이 아닙니다: {total:.2f}")
-        # 버킷 중복 방지
+
+        # (B) 버킷 중복 금지
         buckets = [row["bucket"] for row in value]
         if len(buckets) != len(set(buckets)):
             raise serializers.ValidationError("동일 버킷이 중복되었습니다.")
         return value
+
+    @staticmethod
+    def _normalize_allocations_for_storage(allocs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """모델 JSON 저장용으로 소수 2자리 고정."""
+        out: List[Dict[str, Any]] = []
+        for row in allocs:
+            item = {
+                "bucket": row["bucket"],
+                "weight_pct": q2f(row["weight_pct"]),
+            }
+            assets = row.get("assets") or []
+            norm_assets = [{"code": a["code"], "weight_pct": q2f(a["weight_pct"])} for a in assets]
+            if norm_assets:
+                item["assets"] = norm_assets
+            else:
+                item["assets"] = []
+            out.append(item)
+        return out
 
     @transaction.atomic
     def create(self, validated_data):
         user = self.context["request"].user
 
         allocations = validated_data.pop("allocations")
-        set_primary = validated_data.pop("set_primary", False)
+        set_rep = validated_data.pop("set_representative", False)
 
-        portfolio = Portfolio.objects.create(
-            user=user,
-            **validated_data,
-            source=Portfolio.Source.AI,
-        )
+        # JSON 필드용 정규화(2-dec)
+        norm_allocs = self._normalize_allocations_for_storage(allocations)
 
-        # 버킷/자산 저장
-        alloc_objs = []
-        for row in allocations:
-            alloc = PortfolioAllocation.objects.create(
-                portfolio=portfolio,
-                bucket=row["bucket"],
-                weight_pct=q2f(row["weight_pct"]),
-            )
-            alloc_objs.append(alloc)
-            assets = row.get("assets") or []
-            for a in assets:
-                PortfolioAsset.objects.create(
-                    allocation=alloc,
-                    code=a["code"],
-                    weight_pct=q2f(a["weight_pct"]),
-                )
-
-        # 메트릭스 계산(서버 공식)
+        # 서버 계산 지표(없으면 None)
         metrics_dict = {"expected_return_pct": None, "risk_score": None}
         if compute_portfolio_metrics:
-            final_allocs = []
-            for alloc in alloc_objs:
-                final_allocs.append({
-                    "bucket": alloc.bucket,
-                    "weight_pct": float(alloc.weight_pct),
-                    "assets": [{"code": pa.code, "weight_pct": float(pa.weight_pct)} for pa in alloc.assets.all()],
-                })
             try:
-                m = compute_portfolio_metrics(final_allocs)
+                m = compute_portfolio_metrics(norm_allocs)
                 metrics_dict = {
                     "expected_return_pct": q2f(m.get("expected_return_pct")),
                     "risk_score": q2f(m.get("risk_score")),
                 }
             except Exception:
+                # 계산 실패해도 저장은 진행
                 pass
 
-        PortfolioMetrics.objects.create(
-            portfolio=portfolio,
-            expected_return_pct=metrics_dict["expected_return_pct"],
-            risk_score=metrics_dict["risk_score"],
+        # 포트폴리오 생성(JSON 필드에 직접 저장)
+        portfolio = Portfolio.objects.create(
+            user=user,
+            allocations=norm_allocs,
+            metrics=metrics_dict,
+            source=Portfolio.Source.AI,
+            **validated_data,
         )
 
-        if set_primary:
-            portfolio.set_primary()
+        # 대표 설정 옵션 처리
+        if set_rep:
+            portfolio.set_representative()
 
         return portfolio
 
 
-class PortfolioAssetOutSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PortfolioAsset
-        fields = ("code", "weight_pct")
-
-
-class PortfolioAllocationOutSerializer(serializers.ModelSerializer):
-    assets = PortfolioAssetOutSerializer(many=True)
-
-    class Meta:
-        model = PortfolioAllocation
-        fields = ("bucket", "weight_pct", "assets")
-
-
+# ---------- 출력 스키마 ----------
 class PortfolioDetailSerializer(serializers.ModelSerializer):
-    allocations = PortfolioAllocationOutSerializer(many=True)
-    metrics = serializers.SerializerMethodField()
-
+    # allocations / metrics 는 JSONField 그대로 전달
     class Meta:
         model = Portfolio
         fields = (
@@ -186,25 +168,17 @@ class PortfolioDetailSerializer(serializers.ModelSerializer):
             "amount_krw", "profile", "profile_label", "horizon_desc",
             "must_buckets", "corrections",
             "rationale", "summary", "risks",
-            "ai_proposed_allocations", "is_primary",
+            "ai_proposed_allocations", "is_representative",
             "generated_at", "created_at", "updated_at",
             "allocations", "metrics",
         )
 
-    def get_metrics(self, obj: Portfolio) -> dict:
-        if hasattr(obj, "metrics") and obj.metrics:
-            return obj.metrics.as_dict()
-        return {"expected_return_pct": None, "risk_score": None}
-
 
 class PortfolioListSerializer(serializers.ModelSerializer):
-    metrics = serializers.SerializerMethodField()
-
     class Meta:
         model = Portfolio
-        fields = ("id", "name", "is_primary", "created_at", "amount_krw", "profile", "profile_label", "horizon_desc", "metrics")
-
-    def get_metrics(self, obj: Portfolio) -> dict:
-        if hasattr(obj, "metrics") and obj.metrics:
-            return obj.metrics.as_dict()
-        return {"expected_return_pct": None, "risk_score": None}
+        fields = (
+            "id", "name", "is_representative", "created_at",
+            "amount_krw", "profile", "profile_label", "horizon_desc",
+            "metrics",
+        )
