@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework.decorators import api_view
 from . import views
-from analysis import views_recommend
+from analysis import views_recommend,views_rebalance, views_compare
 
 
 urlpatterns = [
@@ -10,4 +10,6 @@ urlpatterns = [
     path("survey_analyze", views.survey_analyze, name="analysis.survey_analyze"),  # POST
 
     path("recommend/portfolio", views_recommend.RecommendPortfolioView.as_view(), name="recommend-portfolio"),
+    path("rebalance/portfolio/<int:portfolio_id>", views_rebalance.rebalance, name="analysis.rebalance"),
+    path("compare/portfolio", views_compare.compare_portfolio, name="analysis.compare.portfolio"),
 ]

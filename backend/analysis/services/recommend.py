@@ -29,35 +29,26 @@ def _read_prompt_template() -> Template:
 
 
 def build_prompt(*, user, amount_krw: int, horizon_desc: str, must_buckets: List[str]) -> str:
-    """
-    파일 기반 템플릿($변수)로 안전 치환(safe_substitute). 중괄호 {} 충돌로 인한 KeyError 방지.
-    """
-    policy = get_universe_rules_for(user)  # rules + eligible + policy_summary 등
+    policy = get_universe_rules_for(user)  # rules + eligible
 
-    # 버킷별 편입 가능 종목 텍스트
-    lines: List[str] = []
-    for b in policy["buckets"]:
-        codes = b.get("eligible_assets") or []
-        if codes:
-            lines.append(f"- {b['bucket']}: [{', '.join(codes)}]")
-        else:
-            lines.append(f"- {b['bucket']}: []")
-    eligible_assets_by_bucket = "\n".join(lines)
+    # 버킷별 eligible 텍스트
+    eligible_lines = []
+    for b in [r["bucket"] for r in policy["buckets"]]:
+        assets = next(x for x in policy["buckets"] if x["bucket"] == b)["eligible_assets"]
+        eligible_lines.append(f"- {b}: [{', '.join(assets)}]" if assets else f"- {b}: []")
+    eligible_assets_by_bucket = "\n".join(eligible_lines)
 
-    # must_buckets 표기 문자열
-    must_txt = ", ".join(must_buckets) if must_buckets else "없음"
-
-    tmpl = _read_prompt_template()
-    # amount는 텍스트로만 쓰므로 표시용 포맷 적용(쉼표 + KRW)
-    return tmpl.safe_substitute(
-        profile=policy["profile"],
-        profile_label=user.risk_snapshot.latest_result.get_profile_display(),
-        amount_krw=f"{amount_krw:,} KRW",
-        horizon_desc=horizon_desc,
-        must_buckets=must_txt,
-        policy_summary=policy["policy_summary"],
-        eligible_assets_by_bucket=eligible_assets_by_bucket,
-    )
+    tpl_text = _read_prompt_template()
+    ctx = {
+        "risk_profile": policy["profile"],
+        "risk_label": user.risk_snapshot.latest_result.get_profile_display(),
+        "amount_krw": f"{amount_krw:,} KRW",
+        "horizon_desc": horizon_desc,
+        "must_buckets": "[" + ", ".join(must_buckets or []) + "]",
+        "policy_summary": policy["policy_summary"],
+        "eligible_assets_by_bucket": eligible_assets_by_bucket,
+    }
+    return Template(tpl_text).safe_substitute(**ctx)
 
 
 # ---- 로컬 헬퍼들 -------------------------------------------------------------
