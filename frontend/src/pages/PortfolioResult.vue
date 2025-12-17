@@ -34,6 +34,7 @@ const fetchRecommendation = async () => {
       horizon: horizon,
       must_buckets: mustBuckets,
     });
+    console.log("Portfolio Response:", response.data); // 디버깅용 로그
     resultData.value = response.data;
     // 저장 폼 기본 이름 설정
     saveForm.value.name = `${response.data.profile_label} 포트폴리오`;
@@ -95,29 +96,32 @@ const pieStyle = computed(() => {
 
 const formattedAmount = computed(() => amount.toLocaleString() + "원");
 
-const savePortfolio = () => {
-  if (!saveForm.value.name) return alert("이름을 입력해주세요.");
-  // TODO: 실제 백엔드 저장 API 호출 필요 (프론트 로컬 저장 로직 유지)
-  const newPortfolio = {
-    id: Date.now(),
-    typeLabel: resultData.value.profile_label,
-    typeCode: resultData.value.profile,
-    name: saveForm.value.name,
-    memo: saveForm.value.memo,
-    amount: amount,
-    date: new Date().toLocaleDateString(),
-    metrics: resultData.value.metrics,
-    allocations: resultData.value.final_allocations,
-    isMain: false,
-  };
+const savePortfolio = async () => {
+  if (!saveForm.value.name) return alert('이름을 입력해주세요.');
+  
+  try {
+    const payload = {
+      name: saveForm.value.name,
+      amount_krw: amount,
+      profile: resultData.value.profile,
+      profile_label: resultData.value.profile_label,
+      horizon_desc: resultData.value.horizon_desc,
+      must_buckets: mustBuckets, // query param or resultData
+      allocations: resultData.value.final_allocations,
+      metrics: resultData.value.metrics,
+      rationale: resultData.value.rationale,
+      summary: resultData.value.summary,
+      risks: resultData.value.risks,
+      set_representative: true // 기본적으로 대표로 설정할지 여부 (UI에서 선택받을 수도 있음, 일단 true)
+    };
 
-  const saved = JSON.parse(localStorage.getItem("my_portfolios") || "[]");
-  if (saved.length === 0) newPortfolio.isMain = true;
-  saved.push(newPortfolio);
-  localStorage.setItem("my_portfolios", JSON.stringify(saved));
-
-  alert("저장되었습니다!");
-  router.push("/user/mypage");
+    await authApi.savePortfolio(payload);
+    alert('저장되었습니다!');
+    router.push('/user/mypage');
+  } catch (err) {
+    console.error("Save failed:", err);
+    alert('저장 중 오류가 발생했습니다.');
+  }
 };
 
 // 메트릭 표시용
@@ -125,7 +129,7 @@ const expectedReturn = computed(
   () => resultData.value?.metrics?.expected_return_pct || 0
 );
 const riskScore = computed(() => resultData.value?.metrics?.risk_score || 0);
-const rationale = computed(() => resultData.value?.rationale || "");
+const rationale = computed(() => resultData.value?.summary || ''); // rationale 대신 summary 사용
 const assetLabels = {
   STOCKS_KR: "국내 주식",
   STOCKS_GLB: "미국 주식",
@@ -199,31 +203,40 @@ const assetLabels = {
         </span>
 
         <!-- 차트 영역 -->
-        <div
-          class="relative w-64 h-64 mx-auto rounded-full mb-12 shadow-lg scale-100 hover:scale-105 transition-transform duration-500"
-          :style="pieStyle"
-        >
-          <div
-            class="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center shadow-inner"
-          >
+        <div class="relative w-64 h-64 mx-auto rounded-full mb-8 shadow-lg scale-100 hover:scale-105 transition-transform duration-500" :style="pieStyle">
+          <div class="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
             <span class="text-sm text-gray-400 font-medium">기대 수익률</span>
-            <span class="text-3xl font-bold text-[#536dfe]"
-              >+{{ expectedReturn }}%</span
-            >
-            <span class="text-xs text-gray-400 mt-1"
-              >위험 점수: {{ riskScore }}점</span
-            >
+            <span class="text-3xl font-bold text-[#536dfe]">+{{ expectedReturn }}%</span>
           </div>
         </div>
 
-        <!-- AI 코멘트 (Rationale) -->
+        <!-- 위험도 게이지 (추가) -->
+        <div class="max-w-xs mx-auto mb-12">
+          <div class="flex justify-between items-end mb-2 px-1">
+            <span class="text-xs font-bold text-gray-400">위험도 진단</span>
+            <span class="text-sm font-bold" :class="riskScore > 60 ? 'text-red-500' : (riskScore > 40 ? 'text-yellow-500' : 'text-green-500')">
+              {{ riskScore }}점 ({{ riskScore > 60 ? '높음' : (riskScore > 40 ? '중간' : '낮음') }})
+            </span>
+          </div>
+          <div class="h-3 w-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 rounded-full relative">
+            <div 
+              class="absolute top-1/2 -translate-y-1/2 w-1 h-5 bg-gray-800 rounded-sm shadow-sm transition-all duration-1000 ease-out"
+              :style="{ left: riskScore + '%' }"
+            ></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-gray-400 mt-1.5 font-medium px-1">
+            <span>안전 (0)</span>
+            <span>중간 (50)</span>
+            <span>위험 (100)</span>
+          </div>
+        </div>
+
+        <!-- AI 코멘트  -->
         <div class="bg-blue-50 p-6 rounded-xl text-left mb-10">
           <h4 class="font-bold text-[#536dfe] mb-2 flex items-center">
             <span class="text-xl mr-2">💡</span> AI 투자 전략
           </h4>
-          <p class="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-            {{ summary }}
-          </p>
+          <p class="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{{ summary }}</p>
         </div>
 
         <!-- 자산 배분 리스트 -->
@@ -268,23 +281,8 @@ const assetLabels = {
         class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl relative animate-fade-in-up"
       >
         <h3 class="text-xl font-bold mb-6">포트폴리오 저장</h3>
-        <BaseInput
-          label="포트폴리오 이름"
-          v-model="saveForm.name"
-          placeholder="예: 2024년 1억 만들기 플랜"
-        />
-        <div class="mb-8">
-          <label
-            class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2"
-            >메모 (선택)</label
-          >
-          <textarea
-            v-model="saveForm.memo"
-            rows="3"
-            class="w-full border-b-2 border-gray-200 py-2 text-gray-900 focus:outline-none focus:border-[#536dfe] resize-none bg-transparent"
-            placeholder="목표나 다짐을 적어보세요"
-          ></textarea>
-        </div>
+        <BaseInput label="포트폴리오 이름" v-model="saveForm.name" placeholder="예: 2024년 1억 만들기 플랜" />
+        <div class="h-4"></div>
         <div class="flex gap-3 justify-end">
           <button
             @click="showModal = false"

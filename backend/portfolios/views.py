@@ -74,3 +74,34 @@ def portfolio_representative(request):
     p = get_object_or_404(Portfolio, pk=pid, user=request.user)
     p.set_representative()
     return Response({"ok": True, "id": p.id, "is_representative": p.is_representative}, status=status.HTTP_200_OK)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def portfolio_update(request, portfolio_id: int):
+    """
+    수정 (이름, 메모)
+    """
+    p = get_object_or_404(Portfolio, pk=portfolio_id, user=request.user)
+    
+    name = request.data.get("name")
+    memo = request.data.get("memo") # Frontend sends 'memo' -> Backend 'rationale'
+    
+    if name is not None:
+        p.name = name
+    if memo is not None:
+        p.rationale = memo
+        
+    p.save()
+    return Response(PortfolioDetailSerializer(p).data, status=status.HTTP_200_OK)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def portfolio_delete(request, portfolio_id: int):
+    """
+    삭제
+    """
+    p = get_object_or_404(Portfolio, pk=portfolio_id, user=request.user)
+    p.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
