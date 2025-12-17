@@ -44,6 +44,27 @@ export const authApi = {
 
   // 포트폴리오 추천 요청
   recommendPortfolio: (payload) => instance.post("/analysis/recommend/portfolio", payload),
+
+  // 포트폴리오 저장
+  savePortfolio: (payload) => instance.post("/portfolios/save", payload),
+
+  // 포트폴리오 목록 조회
+  getPortfolioList: () => instance.get("/portfolios/list"),
+
+  // 대표 포트폴리오 조회
+  getRepresentativePortfolio: () => instance.get("/portfolios/representative"),
+
+  // 대표 포트폴리오 설정
+  setRepresentative: (id) => instance.post("/portfolios/representative", { id }),
+
+  // 포트폴리오 상세 조회
+  getPortfolioDetail: (id) => instance.get(`/portfolios/${id}`),
+
+  // 포트폴리오 수정 (이름, 메모)
+  updatePortfolio: (id, data) => instance.patch(`/portfolios/${id}/update`, data),
+
+  // 포트폴리오 삭제
+  deletePortfolio: (id) => instance.delete(`/portfolios/${id}/delete`),
 };
 
 // Interceptor로 401 발생 시 자동 갱신 처리

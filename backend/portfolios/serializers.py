@@ -76,6 +76,8 @@ class PortfolioCreateSerializer(serializers.Serializer):
 
     allocations = PortfolioAllocationInSerializer(many=True)
 
+    metrics = serializers.JSONField(required=False)
+
     set_representative = serializers.BooleanField(required=False, default=False)
 
     def validate_allocations(self, value: List[dict]):
@@ -107,19 +109,23 @@ class PortfolioCreateSerializer(serializers.Serializer):
         user = self.context["request"].user
         allocations = validated_data.pop("allocations")
         set_rep = validated_data.pop("set_representative", False)
+        input_metrics = validated_data.pop("metrics", None)
 
         norm_allocs = self._normalize_allocations_for_storage(allocations)
 
-        metrics_dict = {"expected_return_pct": None, "risk_score": None}
-        if compute_portfolio_metrics:
-            try:
-                m = compute_portfolio_metrics(norm_allocs)
-                metrics_dict = {
-                    "expected_return_pct": q2f(m.get("expected_return_pct")),
-                    "risk_score": q2f(m.get("risk_score")),
-                }
-            except Exception:
-                pass
+        if input_metrics:
+            metrics_dict = input_metrics
+        else:
+            metrics_dict = {"expected_return_pct": None, "risk_score": None}
+            if compute_portfolio_metrics:
+                try:
+                    m = compute_portfolio_metrics(norm_allocs)
+                    metrics_dict = {
+                        "expected_return_pct": q2f(m.get("expected_return_pct")),
+                        "risk_score": q2f(m.get("risk_score")),
+                    }
+                except Exception:
+                    pass
 
         portfolio = Portfolio.objects.create(
             user=user,

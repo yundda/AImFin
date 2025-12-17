@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { authApi } from '@/services/auth.api'; // API import
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import MarketTicker from '@/components/home/MarketTicker.vue';
 import PortfolioEmpty from '@/components/home/PortfolioEmpty.vue';
@@ -7,11 +8,22 @@ import PortfolioEmpty from '@/components/home/PortfolioEmpty.vue';
 import PortfolioDashboard from '@/components/home/PortfolioDashboard.vue'; 
 
 const hasPortfolio = ref(false);
+const portfolioData = ref(null);
+const loading = ref(true);
 
-onMounted(() => {
-  // 로컬 스토리지 확인하여 포트폴리오 존재 여부 판단
-  const saved = JSON.parse(localStorage.getItem('my_portfolios') || '[]');
-  hasPortfolio.value = saved.length > 0;
+onMounted(async () => {
+  try {
+    const res = await authApi.getRepresentativePortfolio();
+    if (res.data) {
+      hasPortfolio.value = true;
+      portfolioData.value = res.data;
+    }
+  } catch (error) {
+    console.error("No representative portfolio or error:", error);
+    hasPortfolio.value = false;
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 
@@ -26,12 +38,12 @@ onMounted(() => {
       <!-- 배경 장식 (패턴) -->
       <div class="absolute top-20 left-0 w-full h-[500px] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
 
-      <div class="relative z-10">
+      <div class="relative z-10" v-if="!loading">
         
         <!-- ✅ 조건부 렌더링 -->
         <!-- Case A: 포트폴리오가 있을 때 (대시보드) -->
         <div v-if="hasPortfolio" class="fade-in">
-          <PortfolioDashboard />
+          <PortfolioDashboard :portfolio-data="portfolioData" />
         </div>
 
         <!-- Case B: 포트폴리오가 없을 때 (설문 유도) -->
@@ -40,6 +52,7 @@ onMounted(() => {
         </div>
 
       </div>
+       <!-- 로딩 등 처리는 간단히 생략하거나 스켈레톤 추가 가능 -->
     </div>
   </DefaultLayout>
 </template>
