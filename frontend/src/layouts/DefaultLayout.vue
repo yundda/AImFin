@@ -44,7 +44,7 @@ const handleLogout = async() => {
 
     <!-- 푸터 -->
     <footer class="py-6 text-center text-[10px] text-gray-400 mt-auto">
-      &copy; 2021. - 2026 All Rights Reserved. AImFIN
+      &copy; 2025 - All Rights Reserved. AImFIN
     </footer>
   </div>
 </template>

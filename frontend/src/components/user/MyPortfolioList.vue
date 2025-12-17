@@ -118,27 +118,26 @@ const formatDate = (dateStr) => {
 
 // 상세 자산 배분 매핑 (상세 모달용)
 const detailAssets = computed(() => {
-  if (!detailData.value) return [0, 0, 0, 0];
+  if (!detailData.value) return [0, 0, 0, 0, 0, 0, 0];
   
   const p = detailData.value;
-  let stocks = 0, bonds = 0, alts = 0, cash = 0;
+  const assetMap = {
+    'STOCKS_KR': 0, 'STOCKS_GLB': 0,
+    'BONDS_KR': 0, 'BONDS_GLB': 0,
+    'ALTERNATIVES': 0, 'FUNDS': 0, 'CASH': 0
+  };
   
+  const bucketKeys = ['STOCKS_KR', 'STOCKS_GLB', 'BONDS_KR', 'BONDS_GLB', 'ALTERNATIVES', 'FUNDS', 'CASH'];
+
   if (p.allocations) {
     p.allocations.forEach(a => {
-      const w = a.weight_pct || 0;
-      if (['STOCKS_KR', 'STOCKS_GLB'].includes(a.bucket)) stocks += w;
-      else if (['BONDS_KR', 'BONDS_GLB'].includes(a.bucket)) bonds += w;
-      else if (['ALTERNATIVES', 'FUNDS'].includes(a.bucket)) alts += w;
-      else if (['CASH'].includes(a.bucket)) cash += w;
+      if (assetMap.hasOwnProperty(a.bucket)) {
+        assetMap[a.bucket] += (a.weight_pct || 0);
+      }
     });
   }
   
-  return [
-    Number(stocks.toFixed(1)), 
-    Number(bonds.toFixed(1)), 
-    Number(alts.toFixed(1)), 
-    Number(cash.toFixed(1))
-  ];
+  return bucketKeys.map(key => Number(assetMap[key].toFixed(1)));
 });
 
 const sortedPortfolios = computed(() => {
@@ -152,10 +151,13 @@ const sortedPortfolios = computed(() => {
 });
 
 const assetsInfo = [
-  { label: '주식', color: '#536dfe' },
-  { label: '채권', color: '#a5b4fc' },
-  { label: '부동산/펀드', color: '#cbd5e1' },
-  { label: '현금', color: '#e2e8f0' },
+  { label: '국내주식', color: '#536dfe' },
+  { label: '미국주식', color: '#3b82f6' },
+  { label: '국내채권', color: '#10b981' },
+  { label: '해외채권', color: '#34d399' },
+  { label: '대체투자', color: '#f59e0b' },
+  { label: '펀드', color: '#8b5cf6' },
+  { label: '현금성자산', color: '#cbd5e1' },
 ];
 </script>
 
@@ -208,14 +210,22 @@ const assetsInfo = [
           </div>
 
           <!-- 메트릭 -->
-          <div class="flex gap-4 text-sm mt-1">
-            <div class="flex items-center gap-1.5">
-              <span class="text-gray-500">수익률</span>
-              <span class="font-bold text-[#536dfe]">+{{ p.metrics?.expected_return_pct }}%</span>
+          <div class="flex justify-between items-end mt-2">
+            <!-- 왼쪽: 자산 정보 -->
+            <div class="flex flex-col">
+              <span class="text-[10px] font-bold text-gray-400 mb-0.5">운용 자산</span>
+              <span class="font-bold text-gray-900 text-base">{{ (p.amount_krw || 0).toLocaleString() }}원</span>
             </div>
-            <div class="flex items-center gap-1.5">
-              <span class="text-gray-500">위험도</span>
-              <span class="font-bold text-gray-700">{{ p.metrics?.risk_score }}점</span>
+
+            <!-- 오른쪽: 수익/위험 메트릭 -->
+            <div class="grid grid-cols-[auto_auto] gap-x-2 gap-y-1 text-right">
+              <span class="text-gray-400 text-xs self-center">수익률</span>
+              <span class="font-bold text-[#536dfe] text-sm">+{{ p.metrics?.expected_return_pct }}%</span>
+
+              <span class="text-gray-400 text-xs self-center">위험도</span>
+              <span class="font-bold text-sm" :class="(p.metrics?.risk_score || 0) > 60 ? 'text-red-500' : ((p.metrics?.risk_score || 0) > 40 ? 'text-yellow-500' : 'text-green-500')">
+                {{ p.metrics?.risk_score }}점 ({{ (p.metrics?.risk_score || 0) > 60 ? '높음' : ((p.metrics?.risk_score || 0) > 40 ? '중간' : '낮음') }})
+              </span>
             </div>
           </div>
         </div>
@@ -295,7 +305,7 @@ const assetsInfo = [
             <!-- 2. 차트 & 자산배분 -->
             <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-around gap-8">
               <div class="relative w-48 h-48 shrink-0">
-                <SimpleDonut :assets="detailAssets" size="w-48 h-48" :show-tooltip="false" />
+                <SimpleDonut :assets="detailAssets" :labels="assetsInfo.map(a=>a.label)" :colors="assetsInfo.map(a=>a.color)" size="w-48 h-48" :show-tooltip="false" />
                 <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span class="text-lg font-bold text-[#536dfe]">{{ detailData.profile_label }}</span>
                 </div>

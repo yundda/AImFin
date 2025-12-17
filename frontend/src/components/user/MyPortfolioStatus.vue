@@ -47,30 +47,38 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString();
 };
 
-// 자산 배분 매핑 (API Allocations -> [주식, 채권, 부동산, 현금])
+// 자산 배분 매핑 (API Allocations -> 7개 버킷)
 const mainAssets = computed(() => {
-  if (!mainPortfolioDetail.value) return [0, 0, 0, 0];
+  if (!mainPortfolioDetail.value) return [0, 0, 0, 0, 0, 0, 0];
   
   const p = mainPortfolioDetail.value;
-  let stocks = 0, bonds = 0, alts = 0, cash = 0;
-  
+  const assetMap = {
+    'STOCKS_KR': 0, 'STOCKS_GLB': 0,
+    'BONDS_KR': 0, 'BONDS_GLB': 0,
+    'ALTERNATIVES': 0, 'FUNDS': 0, 'CASH': 0
+  };
+  const bucketKeys = ['STOCKS_KR', 'STOCKS_GLB', 'BONDS_KR', 'BONDS_GLB', 'ALTERNATIVES', 'FUNDS', 'CASH'];
+
   if (p.allocations) {
     p.allocations.forEach(a => {
-      const w = a.weight_pct || 0;
-      if (['STOCKS_KR', 'STOCKS_GLB'].includes(a.bucket)) stocks += w;
-      else if (['BONDS_KR', 'BONDS_GLB'].includes(a.bucket)) bonds += w;
-      else if (['ALTERNATIVES', 'FUNDS'].includes(a.bucket)) alts += w;
-      else if (['CASH'].includes(a.bucket)) cash += w;
+      if (assetMap.hasOwnProperty(a.bucket)) {
+        assetMap[a.bucket] += (a.weight_pct || 0);
+      }
     });
   }
   
-  return [
-    Number(stocks.toFixed(1)), 
-    Number(bonds.toFixed(1)), 
-    Number(alts.toFixed(1)), 
-    Number(cash.toFixed(1))
-  ];
+  return bucketKeys.map(key => Number(assetMap[key].toFixed(1)));
 });
+
+const assetsInfo = [
+  { label: '국내주식', color: '#536dfe' },
+  { label: '미국주식', color: '#3b82f6' },
+  { label: '국내채권', color: '#10b981' },
+  { label: '해외채권', color: '#34d399' },
+  { label: '대체투자', color: '#f59e0b' },
+  { label: '펀드', color: '#8b5cf6' },
+  { label: '현금성자산', color: '#cbd5e1' },
+];
 </script>
 
 <template>
@@ -133,17 +141,17 @@ const mainAssets = computed(() => {
         <div class="border border-gray-100 rounded-2xl p-4 sm:p-6 flex items-center justify-between mt-auto">
           <div>
             <h3 class="font-bold text-gray-900 mb-4">AI 추천 자산 배분</h3>
-            <div class="space-y-2 text-sm text-gray-600">
-              <div class="flex items-center gap-2"><span class="w-3 h-3 bg-[#536dfe] rounded-full"></span>주식 {{ mainAssets[0] }}%</div>
-              <div class="flex items-center gap-2"><span class="w-3 h-3 bg-[#a5b4fc] rounded-full"></span>채권 {{ mainAssets[1] }}%</div>
-              <div class="flex items-center gap-2"><span class="w-3 h-3 bg-[#cbd5e1] rounded-full"></span>부동산 {{ mainAssets[2] }}%</div>
-              <div class="flex items-center gap-2"><span class="w-3 h-3 bg-[#e2e8f0] rounded-full"></span>현금 {{ mainAssets[3] }}%</div>
+            <div class="space-y-1 text-sm text-gray-600">
+              <div v-for="(info, idx) in assetsInfo" :key="idx" class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full" :style="{ backgroundColor: info.color }"></span>
+                {{ info.label }} {{ mainAssets[idx] }}%
+              </div>
             </div>
           </div>
           
           <!-- 도넛 차트 -->
-          <div class="relative w-28 h-28 sm:w-32 sm:h-32">
-            <SimpleDonut :assets="mainAssets" size="w-28 h-28 sm:w-32 sm:h-32" />
+          <div class="relative w-28 h-28 sm:w-32 sm:h-32 group">
+            <SimpleDonut :assets="mainAssets" :labels="assetsInfo.map(a=>a.label)" :colors="assetsInfo.map(a=>a.color)" size="w-28 h-28 sm:w-32 sm:h-32" :show-tooltip="true" />
             <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span class="text-sm font-bold text-[#536dfe]">{{ mainPortfolioDetail.profile_label }}</span>
             </div>

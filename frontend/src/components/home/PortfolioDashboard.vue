@@ -19,27 +19,24 @@ const portfolio = computed(() => {
   const p = props.portfolioData;
   const metrics = p.metrics || { expected_return_pct: 0, risk_score: 0 };
   
-  // 자산 배분 집계 (4개 카테고리로 통합)
-  let stocks = 0;
-  let bonds = 0;
-  let alts = 0;
-  let cash = 0;
-  
+  // 자산 배분 집계 (7개 카테고리)
+  const assetMap = {
+    'STOCKS_KR': 0, 'STOCKS_GLB': 0,
+    'BONDS_KR': 0, 'BONDS_GLB': 0,
+    'ALTERNATIVES': 0, 'FUNDS': 0, 'CASH': 0
+  };
+  const bucketKeys = ['STOCKS_KR', 'STOCKS_GLB', 'BONDS_KR', 'BONDS_GLB', 'ALTERNATIVES', 'FUNDS', 'CASH'];
+
   if (p.allocations) {
     p.allocations.forEach(a => {
-      const w = a.weight_pct || 0;
-      if (['STOCKS_KR', 'STOCKS_GLB'].includes(a.bucket)) stocks += w;
-      else if (['BONDS_KR', 'BONDS_GLB'].includes(a.bucket)) bonds += w;
-      else if (['ALTERNATIVES', 'FUNDS'].includes(a.bucket)) alts += w;
-      else if (['CASH'].includes(a.bucket)) cash += w;
+      if (assetMap.hasOwnProperty(a.bucket)) {
+        assetMap[a.bucket] += (a.weight_pct || 0);
+      }
     });
   }
   
-  // 소수점 1자리 처리
-  stocks = Number(stocks.toFixed(1));
-  bonds = Number(bonds.toFixed(1));
-  alts = Number(alts.toFixed(1));
-  cash = Number(cash.toFixed(1));
+  // Map object to array in specific order
+  const assetsArray = bucketKeys.map(key => Number(assetMap[key].toFixed(1)));
 
   return {
     name: p.name,
@@ -47,7 +44,7 @@ const portfolio = computed(() => {
     amount: p.amount_krw,
     metrics: metrics,
     aiComment: p.rationale || p.summary || '', // AI 코멘트 (rationale 우선)
-    assets: [stocks, bonds, alts, cash],
+    assets: assetsArray,
     typeCode: p.profile 
   };
 });
@@ -66,10 +63,13 @@ const formattedAmount = computed(() => {
 });
 
 const assetsInfo = [
-  { label: '국내/해외 주식', color: 'bg-[#536dfe]' },
-  { label: '채권', color: 'bg-[#a5b4fc]' },
-  { label: '부동산/펀드', color: 'bg-[#cbd5e1]' }, // 원자재 -> 펀드 포함으로 변경
-  { label: '현금성 자산', color: 'bg-[#e2e8f0]' },
+  { label: '국내주식', color: 'bg-[#536dfe]' },
+  { label: '미국주식', color: 'bg-[#3b82f6]' },
+  { label: '국내채권', color: 'bg-[#10b981]' },
+  { label: '해외채권', color: 'bg-[#34d399]' },
+  { label: '대체투자', color: 'bg-[#f59e0b]' },
+  { label: '펀드', color: 'bg-[#8b5cf6]' },
+  { label: '현금성자산', color: 'bg-[#cbd5e1]' },
 ];
 
 const goToList = () => { router.push('/user/mypage'); };
@@ -157,7 +157,7 @@ const modifyPortfolio = () => { router.push({ name: 'portfolio-create', query: {
           <div class="relative mb-8">
             <SimpleDonut :assets="portfolio.assets" size="w-72 h-72 md:w-80 md:h-80" />
             <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span class="text-xs font-bold text-gray-400 mb-1 tracking-wider uppercase">Investment Type</span>
+              <span class="text-xs font-bold text-gray-400 mb-1 tracking-wider uppercase">포트폴리오 성향</span>
               <span class="text-2xl font-extrabold text-[#536dfe]">{{ portfolio.typeLabel }}</span>
             </div>
           </div>

@@ -73,6 +73,14 @@ export const authApi = {
     instance.post("/analysis/compare/portfolio", payload),
 };
 
+  // 포트폴리오 삭제
+  deletePortfolio: (id) => instance.delete(`/portfolios/${id}/delete`),
+
+  // 포트폴리오 비교 분석
+  comparePortfolios: (payload) => instance.post("/analysis/compare/portfolio", payload),
+
+  // 포트폴리오 리밸런싱 분석 요청
+  rebalancePortfolio: (id, payload) => instance.post(`/analysis/rebalance/portfolio/${id}`, payload),
 // 401 자동-리프레시(동시에 여러 요청 들어와도 1회만 시도)
 let isRefreshing = false;
 let queue = [];

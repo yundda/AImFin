@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import SimpleDonut from '@/components/common/SimpleDonut.vue';
 import BaseInput from '@/components/common/BaseInput.vue';
+import { authApi } from '@/services/auth.api';
 
 const router = useRouter();
 
@@ -16,60 +17,109 @@ const selectingIndex = ref(0);
 
 // 분석 상태
 const showComparisonReport = ref(false); // 비교 분석 리포트 표시 여부
+const comparisonResult = ref(null); // API 결과 저장
+const analysisLoading = ref(false);
 
 // 리밸런싱 관련
 const isRebalancing = ref(false);
 const tempPortfolio = ref(null);
 const rebalancedAssets = ref([]);
 const showSaveModal = ref(false);
-const saveForm = ref({ name: '', memo: '' });
+const saveForm = ref({ name: '', memo: '', isRepresentative: false });
 
-// 자산 정보
-const assetLabels = ['주식', '채권', '부동산', '현금'];
-const assetColors = ['#536dfe', '#a5b4fc', '#cbd5e1', '#e2e8f0'];
+// 자산 정보 (7개 버킷으로 확장)
+// 순서: 국내주식, 미국주식, 국내채권, 해외채권, 대체투자, 펀드, 현금성자산
+const assetLabels = ['국내주식', '미국주식', '국내채권', '해외채권', '대체투자', '펀드', '현금성자산'];
+// Colors matching SimpleDonut default or customized here
+const assetColors = ['#536dfe', '#3b82f6', '#10b981', '#34d399', '#f59e0b', '#8b5cf6', '#cbd5e1'];
+const bucketKeys = ['STOCKS_KR', 'STOCKS_GLB', 'BONDS_KR', 'BONDS_GLB', 'ALTERNATIVES', 'FUNDS', 'CASH'];
 
-onMounted(() => {
-  const saved = JSON.parse(localStorage.getItem('my_portfolios') || '[]');
-  
-  saved.unshift({
-    id: 'ai-balanced', name: 'AI 추천 포트폴리오', typeLabel: '균형형', 
-    assets: [40, 30, 20, 10], typeCode: 'Balanced', isAi: true,
-    aiComment: 'AI가 제안하는 가장 이상적인 균형 포트폴리오입니다. 시장 변동성에 강한 면모를 보입니다.'
-  });
-  
-  portfolios.value = saved;
-});
-
-const leftP = computed(() => portfolios.value.find(p => p.id === selectedIds.value[0]));
-
-const rightP = computed(() => {
-  if (tempPortfolio.value) return tempPortfolio.value;
-  return portfolios.value.find(p => p.id === selectedIds.value[1]);
-});
-
-// 수치 계산 로직
-const calculateStats = (assets) => {
-  if (!assets) return { returnRate: 0, riskScore: 0 };
-  const weights = { return: [12, 5, 7, 2], risk: [90, 20, 50, 0] };
-  let wReturn = 0, wRisk = 0;
-  assets.forEach((percent, i) => {
-    wReturn += percent * weights.return[i];
-    wRisk += percent * weights.risk[i];
-  });
-  return { returnRate: (wReturn / 100).toFixed(1), riskScore: Math.round(wRisk / 100) };
+// 포트폴리오 로드
+const loadPortfolios = async () => {
+  try {
+    const res = await authApi.getPortfolioList();
+    const list = res.data.map(p => {
+      // List API does not provide allocations, so we initialize with zeros.
+      // Detailed loading happens on selection.
+      return {
+        ...p,
+        assets: [0,0,0,0,0,0,0] // 7 buckets initialized to 0
+      };
+    });
+    portfolios.value = list;
+  } catch (err) {
+    console.error("Failed to load portfolios:", err);
+  }
 };
 
-const leftStats = computed(() => calculateStats(leftP.value?.assets));
-const rightStats = computed(() => calculateStats(rightP.value?.assets));
+onMounted(loadPortfolios);
+
+// 선택된 포트폴리오 객체 저장 (API 상세 조회 결과)
+const selectedPortfolios = ref([null, null]);
+
+const leftP = computed(() => selectedPortfolios.value[0]);
+const rightP = computed(() => tempPortfolio.value || selectedPortfolios.value[1]);
+
+// 수치 계산 로직 (API metrics 사용)
+const getStats = (p) => {
+  if (!p || !p.metrics) return { returnRate: 0, riskScore: 0 };
+  return { 
+    returnRate: p.metrics.expected_return_pct, 
+    riskScore: p.metrics.risk_score 
+  };
+};
+
+const leftStats = computed(() => getStats(leftP.value));
+const rightStats = computed(() => getStats(rightP.value));
 
 // 기능 함수들
 const openSelectModal = (idx) => { selectingIndex.value = idx; showSelectModal.value = true; };
-const selectPortfolio = (id) => { 
-  selectedIds.value[selectingIndex.value] = id; 
-  showSelectModal.value = false;
-  if (selectingIndex.value === 1) {
-    tempPortfolio.value = null;
-    showComparisonReport.value = false; // 포트폴리오 바뀌면 분석 결과 초기화
+
+const selectPortfolio = async (id) => {
+  try {
+    // 상세 조회하여 assets 정보 등을 채움
+    const res = await authApi.getPortfolioDetail(id);
+    const p = res.data;
+    
+    // assets 배열로 변환 (7 buckets)
+    const assetMap = {
+      'STOCKS_KR': 0, 'STOCKS_GLB': 0,
+      'BONDS_KR': 0, 'BONDS_GLB': 0,
+      'ALTERNATIVES': 0, 'FUNDS': 0, 'CASH': 0
+    };
+
+    if (p.allocations) {
+      p.allocations.forEach(a => {
+        if (assetMap.hasOwnProperty(a.bucket)) {
+          assetMap[a.bucket] += (a.weight_pct || 0);
+        }
+      });
+    }
+    
+    // Map object to array in specific order
+    const assetsArray = bucketKeys.map(key => Number(assetMap[key].toFixed(1))); // 1 decimal place
+
+    // UI용 객체 생성
+    const portObj = {
+      ...p,
+      typeLabel: p.profile_label,
+      assets: assetsArray,
+      aiComment: p.rationale || p.summary || ''
+    };
+
+    selectedPortfolios.value[selectingIndex.value] = portObj;
+    selectedIds.value[selectingIndex.value] = id;
+    
+    showSelectModal.value = false;
+    
+    if (selectingIndex.value === 1) {
+      tempPortfolio.value = null; // 리밸런싱 해제
+      showComparisonReport.value = false;
+      comparisonResult.value = null;
+    }
+  } catch (err) {
+    console.error("Failed to fetch detail:", err);
+    alert("포트폴리오 정보를 가져오는데 실패했습니다.");
   }
 };
 
@@ -79,13 +129,48 @@ const startAnalysis = () => {
 };
 
 // 비교 분석 실행
-const runComparison = () => {
-  // 로딩 효과 등을 넣을 수 있음
-  showComparisonReport.value = true;
-  // 스크롤을 아래로 부드럽게 이동
-  setTimeout(() => {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-  }, 100);
+const runComparison = async () => {
+  if (!leftP.value || !rightP.value) return;
+  
+  try {
+    analysisLoading.value = true;
+    showComparisonReport.value = false;
+    
+    const payload = {};
+    
+    // Left: 항상 ID 기반 
+    payload.left = { type: 'id', id: leftP.value.id };
+    
+    // Right: Temp(리밸런싱)이면 Allocations, 아니면 ID
+    if (rightP.value.isTemp) {
+      const currentAssets = rightP.value.assets;
+      const allocations = bucketKeys.map((key, idx) => ({
+        bucket: key,
+        weight_pct: currentAssets[idx]
+      }));
+
+      payload.right = {
+        type: 'allocations',
+        allocations: allocations
+      };
+    } else {
+      payload.right = { type: 'id', id: rightP.value.id };
+    }
+
+    const res = await authApi.comparePortfolios(payload);
+    comparisonResult.value = res.data;
+    showComparisonReport.value = true;
+    
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
+    
+  } catch (err) {
+    console.error("Comparison failed:", err);
+    alert("비교 분석 중 오류가 발생했습니다: " + (err.response?.data?.detail || err.message));
+  } finally {
+    analysisLoading.value = false;
+  }
 };
 
 const toggleRebalance = () => {
@@ -95,47 +180,106 @@ const toggleRebalance = () => {
   isRebalancing.value = !isRebalancing.value;
 };
 
-// 리밸런싱 적용 및 분석
-const analyzeRebalance = () => {
+// 리밸런싱 적용 및 AI 분석 요청
+const analyzeRebalance = async () => {
   const total = rebalancedAssets.value.reduce((a, b) => a + b, 0);
-  if (total !== 100) return alert(`자산 비중의 합이 ${total}%입니다. 100%를 맞춰주세요.`);
+  // Allow slight float error but ensure strictly 100 for backend
+  if (Math.abs(total - 100) > 0.1) return alert(`자산 비중의 합이 ${total.toFixed(1)}%입니다. 100%를 맞춰주세요.`);
   
-  // 임시 포트폴리오 생성 (AI 코멘트 포함)
-  tempPortfolio.value = {
-    ...rightP.value, id: 'temp-' + Date.now(),
-    name: rightP.value.name.includes('(조정됨)') ? rightP.value.name : `${rightP.value.name} (조정됨)`,
-    assets: [...rebalancedAssets.value], isTemp: true,
-    // 리밸런싱에 대한 AI 분석 생성 (가상)
-    aiComment: `주식 비중을 ${rebalancedAssets.value[0]}%로 조정하여 기대 수익률이 변화했습니다. 이전보다 ${rebalancedAssets.value[0] > 40 ? '공격적' : '보수적'}인 전략으로 수정되었습니다.`
-  };
-  isRebalancing.value = false;
-  showComparisonReport.value = false; // 리밸런싱 했으니 전체 비교 분석은 다시 해야 함
+  try {
+    analysisLoading.value = true;
+
+    // 1. 7개 버킷 Allocations 생성 (1:1 매핑)
+    const newAllocations = bucketKeys.map((key, idx) => ({
+        bucket: key,
+        weight_pct: rebalancedAssets.value[idx]
+    }));
+    
+    // 원본 가져오기 (ID 참조용)
+    const original = selectedPortfolios.value[1]; 
+    if (!original) throw new Error("원본 포트폴리오 데이터를 찾을 수 없습니다.");
+
+    // 2. 백엔드 분석 요청
+    const payload = { allocations: newAllocations };
+    const res = await authApi.rebalancePortfolio(original.id, payload);
+    const result = res.data;
+
+    // 3. 임시 포트폴리오 업데이트
+    tempPortfolio.value = {
+      ...original,
+      id: 'temp-' + Date.now(),
+      name: original.name + ' (조정됨)',
+      assets: [...rebalancedAssets.value],
+      isTemp: true,
+      allocations: result.final_allocations || newAllocations,
+      metrics: {
+        expected_return_pct: result.metrics?.expected_return_pct || 0,
+        risk_score: result.metrics?.risk_score || 0
+      },
+      aiComment: Array.isArray(result.summary) ? result.summary.join('\n') : (result.summary || '분석 결과가 없습니다.')
+    };
+
+    isRebalancing.value = false;
+    showComparisonReport.value = false;
+    comparisonResult.value = null;
+
+  } catch (err) {
+    console.error("Rebalance analysis failed:", err);
+    alert("분석 중 오류가 발생했습니다: " + (err.response?.data?.detail || err.message));
+  } finally {
+    analysisLoading.value = false;
+  }
+};
+
+const calculateStats = (assets) => {
+  // 로컬 계산 로직은 이제 사용하지 않거나, 초기 대략적 갱신용으로 남겨둠.
+  // API 호출이 있으므로 실제로는 필요없을 수 있음.
+  return { returnRate: 0, riskScore: 0 }; 
 };
 
 const resetRebalance = () => { 
   tempPortfolio.value = null; 
   showComparisonReport.value = false;
+  comparisonResult.value = null;
 };
 
 const openSaveModal = () => {
-  saveForm.value = { name: rightP.value.name, memo: '' };
+  saveForm.value = { name: rightP.value.name, memo: '', isRepresentative: false };
   showSaveModal.value = true;
 };
 
-const saveNewPortfolio = () => {
-  const newP = {
-    ...rightP.value, id: Date.now(),
-    name: saveForm.value.name, memo: saveForm.value.memo,
-    isAi: false, isTemp: false, date: new Date().toLocaleDateString()
-  };
-  const saved = JSON.parse(localStorage.getItem('my_portfolios') || '[]');
-  saved.push(newP);
-  localStorage.setItem('my_portfolios', JSON.stringify(saved));
-  portfolios.value.push(newP);
-  selectedIds.value[1] = newP.id;
-  tempPortfolio.value = null;
-  showSaveModal.value = false;
-  alert('포트폴리오가 저장되었습니다!');
+const saveNewPortfolio = async () => {
+  if (!saveForm.value.name) return alert("이름을 입력해주세요.");
+  
+  try {
+    const currentAssets = rightP.value.assets;
+    const allocations = bucketKeys.map((key, idx) => ({
+        bucket: key,
+        weight_pct: currentAssets[idx]
+    }));
+
+    const payload = {
+      name: saveForm.value.name,
+      amount_krw: rightP.value.amount_krw || 0,
+      profile: rightP.value.profile || 'CONSERVATIVE', 
+      profile_label: rightP.value.typeLabel || 'User Custom',
+      horizon_desc: 'Custom',
+      allocations: allocations,
+      rationale: comparisonResult.value?.rationale || '',
+      summary: comparisonResult.value?.summary || '',
+      risks: comparisonResult.value?.risks || '',
+      set_representative: saveForm.value.isRepresentative
+    };
+    
+    await authApi.savePortfolio(payload);
+    alert('저장되었습니다!');
+    
+    await loadPortfolios();
+    showSaveModal.value = false;
+  } catch (err) {
+    console.error("Save failed:", err);
+    alert("저장 실패");
+  }
 };
 </script>
 
@@ -149,31 +293,83 @@ const saveNewPortfolio = () => {
 
       <!-- [STEP 1] 선택 화면 -->
       <div v-if="step === 'select'" class="flex flex-col md:flex-row items-center justify-center gap-8 fade-in">
-        <div @click="openSelectModal(0)" class="w-full max-w-sm h-80 rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#536dfe] hover:bg-blue-50/30 transition-all group relative bg-white">
-          <div v-if="leftP" class="text-center w-full h-full p-8 flex flex-col items-center justify-center">
-            <h3 class="font-bold text-xl mb-2">{{ leftP.name }}</h3>
-            <span class="px-2 py-1 bg-gray-100 text-xs rounded text-gray-500">{{ leftP.typeLabel }}</span>
-            <div class="mt-6"><SimpleDonut :assets="leftP.assets" size="w-32 h-32" /></div>
-            <button class="absolute top-4 right-4 text-gray-400 hover:text-[#536dfe]">🔄</button>
+        <div @click="openSelectModal(0)" class="w-full max-w-sm h-96 rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#536dfe] hover:bg-blue-50/30 transition-all group relative bg-white overflow-hidden shadow-sm hover:shadow-md">
+          <div v-if="leftP" class="text-center w-full h-full p-6 flex flex-col items-center justify-between">
+            <div class="w-full relative pt-2">
+              <h3 class="font-bold text-xl text-gray-900 truncate px-2">{{ leftP.name }}</h3>
+              <p class="text-xs text-gray-400 mt-1">{{ leftP.created_at ? new Date(leftP.created_at).toLocaleDateString() : '날짜 없음' }}</p>
+              <button class="absolute top-0 right-0 p-2 text-gray-400 hover:text-[#536dfe]">🔄</button>
+            </div>
+
+            <!-- 차트 & 타입 -->
+            <div class="relative shrink-0 my-2">
+              <SimpleDonut :assets="leftP.assets" :labels="assetLabels" :colors="assetColors" size="w-36 h-36" :show-tooltip="false" />
+              <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span class="text-lg font-extrabold text-[#536dfe]">{{ leftP.typeLabel }}</span>
+              </div>
+            </div>
+
+            <!-- 스탯 -->
+            <div class="grid grid-cols-2 gap-3 w-full bg-gray-50 rounded-xl p-3 text-sm">
+              <div class="flex flex-col items-start pl-2">
+                <span class="text-[10px] text-gray-400 font-bold mb-0.5">운용 자산</span>
+                <span class="font-bold text-gray-900">{{ (leftP.amount_krw || 0).toLocaleString() }}원</span>
+              </div>
+              <div class="flex flex-col items-start pl-2">
+                <span class="text-[10px] text-gray-400 font-bold mb-0.5">위험도</span>
+                <span class="font-bold" :class="leftStats.riskScore > 60 ? 'text-red-500' : (leftStats.riskScore > 40 ? 'text-yellow-500' : 'text-green-500')">{{ leftStats.riskScore }}점</span>
+              </div>
+              <div class="col-span-2 flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-blue-100 shadow-sm mt-1">
+                <span class="text-xs font-bold text-gray-500">예상 수익률</span>
+                <span class="text-lg font-bold text-[#536dfe]">+{{ leftStats.returnRate }}%</span>
+              </div>
+            </div>
           </div>
-          <div v-else class="text-center">
-            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-3xl mb-4 text-gray-400 group-hover:bg-[#536dfe] group-hover:text-white transition-colors">＋</div>
+          <div v-else class="text-center flex flex-col items-center justify-center h-full w-full">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-3xl mb-4 text-gray-400 group-hover:bg-[#536dfe] group-hover:text-white transition-colors shadow-inner">＋</div>
             <p class="text-gray-500 font-bold">포트폴리오 선택</p>
+            <p class="text-xs text-gray-400 mt-1">비교할 첫 번째 전략을 가져옵니다</p>
           </div>
         </div>
 
         <div class="w-12 h-12 rounded-full bg-[#536dfe] text-white flex items-center justify-center font-bold text-lg shadow-lg z-10">VS</div>
 
-        <div @click="openSelectModal(1)" class="w-full max-w-sm h-80 rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#536dfe] hover:bg-blue-50/30 transition-all group relative bg-white">
-          <div v-if="rightP" class="text-center w-full h-full p-8 flex flex-col items-center justify-center">
-            <h3 class="font-bold text-xl mb-2">{{ rightP.name }}</h3>
-            <span class="px-2 py-1 bg-gray-100 text-xs rounded text-gray-500">{{ rightP.typeLabel }}</span>
-            <div class="mt-6"><SimpleDonut :assets="rightP.assets" size="w-32 h-32" /></div>
-            <button class="absolute top-4 right-4 text-gray-400 hover:text-[#536dfe]">🔄</button>
+        <div @click="openSelectModal(1)" class="w-full max-w-sm h-96 rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#536dfe] hover:bg-blue-50/30 transition-all group relative bg-white overflow-hidden shadow-sm hover:shadow-md">
+          <div v-if="rightP" class="text-center w-full h-full p-6 flex flex-col items-center justify-between">
+            <div class="w-full relative pt-2">
+              <h3 class="font-bold text-xl text-gray-900 truncate px-2">{{ rightP.name }}</h3>
+              <p class="text-xs text-gray-400 mt-1">{{ rightP.created_at ? new Date(rightP.created_at).toLocaleDateString() : '날짜 없음' }}</p>
+              <button class="absolute top-0 right-0 p-2 text-gray-400 hover:text-[#536dfe]">🔄</button>
+            </div>
+
+            <!-- 차트 & 타입 -->
+            <div class="relative shrink-0 my-2">
+              <SimpleDonut :assets="rightP.assets" :labels="assetLabels" :colors="assetColors" size="w-36 h-36" :show-tooltip="false" />
+              <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span class="text-lg font-extrabold text-[#536dfe]">{{ rightP.typeLabel }}</span>
+              </div>
+            </div>
+
+            <!-- 스탯 -->
+            <div class="grid grid-cols-2 gap-3 w-full bg-gray-50 rounded-xl p-3 text-sm">
+              <div class="flex flex-col items-start pl-2">
+                <span class="text-[10px] text-gray-400 font-bold mb-0.5">운용 자산</span>
+                <span class="font-bold text-gray-900">{{ (rightP.amount_krw || 0).toLocaleString() }}원</span>
+              </div>
+              <div class="flex flex-col items-start pl-2">
+                <span class="text-[10px] text-gray-400 font-bold mb-0.5">위험도</span>
+                <span class="font-bold" :class="rightStats.riskScore > 60 ? 'text-red-500' : (rightStats.riskScore > 40 ? 'text-yellow-500' : 'text-green-500')">{{ rightStats.riskScore }}점</span>
+              </div>
+              <div class="col-span-2 flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-blue-100 shadow-sm mt-1">
+                <span class="text-xs font-bold text-gray-500">예상 수익률</span>
+                <span class="text-lg font-bold text-[#536dfe]">+{{ rightStats.returnRate }}%</span>
+              </div>
+            </div>
           </div>
-          <div v-else class="text-center">
-            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-3xl mb-4 text-gray-400 group-hover:bg-[#536dfe] group-hover:text-white transition-colors">＋</div>
+          <div v-else class="text-center flex flex-col items-center justify-center h-full w-full">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-3xl mb-4 text-gray-400 group-hover:bg-[#536dfe] group-hover:text-white transition-colors shadow-inner">＋</div>
             <p class="text-gray-500 font-bold">포트폴리오 선택</p>
+            <p class="text-xs text-gray-400 mt-1">비교할 두 번째 전략을 가져옵니다</p>
           </div>
         </div>
       </div>
@@ -196,15 +392,32 @@ const saveNewPortfolio = () => {
               <span class="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold">{{ leftP.typeLabel }}</span>
             </div>
             <div class="flex items-center gap-6 mb-6">
-              <SimpleDonut :assets="leftP.assets" size="w-24 h-24" />
+              <SimpleDonut :assets="leftP.assets" :labels="assetLabels" :colors="assetColors" size="w-24 h-24" />
               <div class="space-y-1 flex-1">
-                <div class="flex justify-between text-sm"><span class="text-gray-500">수익률</span><span class="font-bold text-[#536dfe]">+{{ leftStats.returnRate }}%</span></div>
-                <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-green-400 to-red-500" :style="{width: leftStats.riskScore + '%'}"></div></div>
-                <div class="flex justify-between text-[10px] text-gray-400"><span>안전</span><span>위험</span></div>
+                <div class="space-y-2 flex-1">
+                  <div class="flex justify-between text-sm"><span class="text-gray-500">수익률</span><span class="font-bold text-[#536dfe]">+{{ leftStats.returnRate }}%</span></div>
+                  
+                  <!-- Unified Risk UI -->
+                  <div>
+                    <div class="flex justify-between items-end mb-1 px-1">
+                      <span class="text-xs font-bold text-gray-400">위험도 진단</span>
+                      <span class="text-sm font-bold" :class="leftStats.riskScore > 60 ? 'text-red-500' : (leftStats.riskScore > 40 ? 'text-yellow-500' : 'text-green-500')">
+                        {{ leftStats.riskScore }}점 ({{ leftStats.riskScore > 60 ? '높음' : (leftStats.riskScore > 40 ? '중간' : '낮음') }})
+                      </span>
+                    </div>
+                    <div class="h-2 w-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 rounded-full relative shadow-inner">
+                      <div class="absolute top-1/2 -translate-y-1/2 w-1.5 h-4 bg-gray-800 border-2 border-white rounded-sm shadow-md transition-all duration-1000 ease-out" :style="{ left: leftStats.riskScore + '%' }"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-gray-400 mt-1.5 font-medium px-1">
+                      <span>안전</span>
+                      <span>위험</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="bg-gray-50 p-4 rounded-xl text-sm text-gray-600">
-              {{ leftP.aiComment || leftP.memo || '분석 정보 없음' }}
+            <div class="bg-blue-50 p-4 rounded-xl text-sm text-[#2C4768]">
+              <strong>🤖 AI 분석:</strong> {{ leftP.aiComment || leftP.memo || '분석 정보 없음' }}
             </div>
           </div>
 
@@ -232,16 +445,34 @@ const saveNewPortfolio = () => {
 
             <div v-if="!isRebalancing">
               <div class="flex items-center gap-6 mb-6">
-                <SimpleDonut :assets="rightP.assets" size="w-24 h-24" />
+                <SimpleDonut :assets="rightP.assets" :labels="assetLabels" :colors="assetColors" size="w-24 h-24" />
                 <div class="space-y-1 flex-1">
+                <div class="space-y-2 flex-1">
                   <div class="flex justify-between text-sm"><span class="text-gray-500">수익률</span><span class="font-bold text-[#536dfe]">+{{ rightStats.returnRate }}%</span></div>
-                  <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-green-400 to-red-500" :style="{width: rightStats.riskScore + '%'}"></div></div>
-                  <div class="flex justify-between text-[10px] text-gray-400"><span>안전</span><span>위험</span></div>
+                  
+                  <!-- Unified Risk UI -->
+                  <div>
+                    <div class="flex justify-between items-end mb-1 px-1">
+                      <span class="text-xs font-bold text-gray-400">위험도 레벨</span>
+                      <span class="text-sm font-bold" :class="rightStats.riskScore > 60 ? 'text-red-500' : (rightStats.riskScore > 40 ? 'text-yellow-500' : 'text-green-500')">
+                        {{ rightStats.riskScore }}점 ({{ rightStats.riskScore > 60 ? '높음' : (rightStats.riskScore > 40 ? '중간' : '낮음') }})
+                      </span>
+                    </div>
+                    <div class="h-2 w-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 rounded-full relative shadow-inner">
+                      <div class="absolute top-1/2 -translate-y-1/2 w-1.5 h-4 bg-gray-800 border-2 border-white rounded-sm shadow-md transition-all duration-1000 ease-out" :style="{ left: rightStats.riskScore + '%' }"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-gray-400 mt-1.5 font-medium px-1">
+                      <span>안전</span>
+                      <span>위험</span>
+                    </div>
+                  </div>
+                </div>
                 </div>
               </div>
-              <div class="bg-blue-50 p-4 rounded-xl text-sm text-[#2C4768]">
-                <strong>🤖 AI 분석:</strong> {{ rightP.aiComment || '분석 정보 없음' }}
-              </div>
+            <div class="bg-blue-50 p-4 rounded-xl text-sm text-[#2C4768]">
+              <strong>🤖 AI 분석:</strong>
+              <div class="mt-1 whitespace-pre-line">{{ rightP.aiComment || '분석 정보 없음' }}</div>
+            </div>
               
               <!-- 저장 버튼 (리밸런싱 분석 완료된 상태일 때만 표시) -->
               <div v-if="rightP.isTemp" class="mt-4 flex gap-2">
@@ -255,7 +486,7 @@ const saveNewPortfolio = () => {
               <div class="space-y-3 mb-6">
                 <div v-for="(label, i) in assetLabels" :key="i">
                   <div class="flex justify-between text-xs mb-1 font-bold"><span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" :style="{background: assetColors[i]}"></span>{{ label }}</span><span class="text-[#536dfe]">{{ rebalancedAssets[i] }}%</span></div>
-                  <input type="range" v-model.number="rebalancedAssets[i]" min="0" max="100" step="5" class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#536dfe]" />
+                  <input type="range" v-model.number="rebalancedAssets[i]" min="0" max="100" step="5" class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#536dfe]" :class="{'accent-[#536dfe]': true}" :style="{'accent-color': assetColors[i]}" />
                 </div>
               </div>
               <div class="text-right text-xs font-bold mb-4" :class="rebalancedAssets.reduce((a,b)=>a+b,0) === 100 ? 'text-green-500' : 'text-red-500'">합계: {{ rebalancedAssets.reduce((a,b)=>a+b,0) }}% / 100%</div>
@@ -267,23 +498,28 @@ const saveNewPortfolio = () => {
         </div>
 
         <!-- [하단] 비교 분석 리포트 -->
-        <div v-if="showComparisonReport" class="bg-gray-50 border border-gray-200 rounded-3xl p-8 animate-fade-in-up">
+        <!-- [하단] 비교 분석 리포트 -->
+        <div v-if="showComparisonReport && comparisonResult" class="bg-gray-50 border border-gray-200 rounded-3xl p-8 animate-fade-in-up">
           <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <span>📑</span> 포트폴리오 비교 분석 결과
           </h3>
-          <div class="space-y-4 text-sm text-gray-700 leading-relaxed">
-            <p>
-              <span class="font-bold text-[#536dfe]">수익률 차이:</span> 
-              왼쪽 포트폴리오 대비 오른쪽이 <span class="font-bold">{{ (rightStats.returnRate - leftStats.returnRate).toFixed(1) }}%p</span> {{ rightStats.returnRate > leftStats.returnRate ? '높은' : '낮은' }} 예상 수익률을 보입니다.
-            </p>
-            <p>
-              <span class="font-bold text-orange-500">위험도 분석:</span> 
-              {{ rightStats.riskScore > leftStats.riskScore ? '오른쪽 포트폴리오는 주식 비중이 높아 변동성 위험이 증가했습니다.' : '오른쪽 포트폴리오는 안정 자산 비중을 높여 리스크를 효과적으로 낮췄습니다.' }}
-            </p>
-            <p>
-              <span class="font-bold text-gray-900">최종 조언:</span> 
-              단기적인 시장 변동성을 견딜 수 있다면 오른쪽 전략이 유효하나, 안정성을 중시한다면 왼쪽 전략 유지를 권장합니다.
-            </p>
+          <div class="space-y-6 text-sm text-gray-700 leading-relaxed">
+            
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+               <h4 class="font-bold text-[#536dfe] mb-2">분석 근거 (Rationale)</h4>
+               <p class="whitespace-pre-line">{{ comparisonResult.rationale }}</p>
+            </div>
+
+             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+               <h4 class="font-bold text-green-600 mb-2">요약 및 제안 (Summary)</h4>
+               <p class="whitespace-pre-line">{{ comparisonResult.summary }}</p>
+            </div>
+
+             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+               <h4 class="font-bold text-orange-500 mb-2">위험 요인 (Risks)</h4>
+               <p class="whitespace-pre-line">{{ comparisonResult.risks }}</p>
+            </div>
+
           </div>
         </div>
 
@@ -307,6 +543,19 @@ const saveNewPortfolio = () => {
         <BaseInput label="이름" v-model="saveForm.name" />
         <div class="mb-6"><label class="block text-xs font-bold text-gray-500 mb-2">메모 (선택)</label><textarea v-model="saveForm.memo" rows="3" class="w-full border-b-2 p-2 outline-none resize-none"></textarea></div>
         <div class="flex gap-3 justify-end"><button @click="showSaveModal = false" class="px-4 py-2 border rounded font-bold text-gray-500">취소</button><button @click="saveNewPortfolio" class="px-6 py-2 bg-[#536dfe] text-white rounded font-bold">저장</button></div>
+      </div>
+    </div>
+    <!-- 로딩 오버레이 -->
+    <div v-if="analysisLoading" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] backdrop-blur-sm fade-in">
+      <div class="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center text-center max-w-sm animate-fade-in-up">
+        <div class="w-16 h-16 border-4 border-gray-200 border-t-[#536dfe] rounded-full animate-spin mb-6"></div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">
+          {{ isRebalancing ? '전략 재설계 및 분석 중...' : '포트폴리오 비교 분석 중...' }}
+        </h3>
+        <p class="text-gray-500 text-sm leading-relaxed">
+          AI가 상세 리포트를 생성하고 있습니다.<br/>
+          최대 30초 정도 소요될 수 있으니 잠시만 기다려주세요 ☕️
+        </p>
       </div>
     </div>
   </DefaultLayout>
