@@ -93,7 +93,7 @@ const generatePortfolio = async () => {
 
         <!-- 1. 투자 금액 -->
         <div class="mb-10">
-          <label class="block text-lg font-bold text-gray-900 mb-4">💰 투자 가능 금액은 얼마인가요?</label>
+          <label class="block text-lg font-bold text-gray-900 mb-4"> 투자 가능 금액은 얼마인가요?</label>
           <div class="relative">
             <input 
               type="number" 
@@ -123,7 +123,7 @@ const generatePortfolio = async () => {
 
         <!-- 2. 투자 기간 -->
         <div class="mb-10">
-          <label class="block text-lg font-bold text-gray-900 mb-4">⏳ 투자를 얼마나 길게 할 계획인가요?</label>
+          <label class="block text-lg font-bold text-gray-900 mb-4"> 투자를 얼마나 길게 할 계획인가요?</label>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button 
               v-for="opt in horizonOptions" 
@@ -139,7 +139,7 @@ const generatePortfolio = async () => {
 
         <!-- 3. 선호 상품 -->
         <div class="mb-12">
-          <label class="block text-lg font-bold text-gray-900 mb-4">❤️ 포트폴리오에 꼭 담고 싶은 상품은?</label>
+          <label class="block text-lg font-bold text-gray-900 mb-4"> 포트폴리오에 꼭 담고 싶은 상품은?</label>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <button 
               v-for="opt in assetOptions" 
@@ -158,7 +158,7 @@ const generatePortfolio = async () => {
           @click="generatePortfolio"
           class="w-full py-5 bg-[#536dfe] text-white text-lg font-bold rounded-2xl shadow-lg hover:bg-[#4059e0] transition-transform hover:-translate-y-1 active:translate-y-0"
         >
-          AI 포트폴리오 생성하기 ✨
+          AI 포트폴리오 생성하기 
         </button>
 
       </div>
