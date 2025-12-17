@@ -40,15 +40,20 @@ export const authApi = {
   login: async (credentials) => {
     const resp = await instance.post("/users/auth/login", credentials);
     const { access, refresh } = resp.data || {};
-    if (access) localStorage.setItem(ACCESS_KEY, access);
+    if (access) {
+      localStorage.setItem(ACCESS_KEY, access);
+      instance.defaults.headers.common["Authorization"] = `Bearer ${access}`;
+    }
     if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
     return resp;
   },
 
   logout: async () => {
+    const refresh = localStorage.getItem(REFRESH_KEY);
     try {
-      await instance.post("/users/auth/logout");
+      await instance.post("/users/auth/logout", { refresh });
     } finally {
+      delete instance.defaults.headers.common["Authorization"];
       localStorage.removeItem(ACCESS_KEY);
       localStorage.removeItem(REFRESH_KEY);
     }
@@ -81,12 +86,15 @@ export const authApi = {
   getPortfolioDetail: (id) => instance.get(`/portfolios/${id}`),
   getRepresentativePortfolio: () => instance.get("/portfolios/representative"),
   savePortfolio: (payload) => instance.post("/portfolios/save", payload),
-  updatePortfolio: (id, payload) => instance.patch(`/portfolios/${id}/update`, payload),
-  setRepresentative: (id) => instance.post("/portfolios/representative", { id }), // Changed to match likely backend expectation or check views.py again
+  updatePortfolio: (id, payload) =>
+    instance.patch(`/portfolios/${id}/update`, payload),
+  setRepresentative: (id) =>
+    instance.post("/portfolios/representative", { id }), // Changed to match likely backend expectation or check views.py again
   deletePortfolio: (id) => instance.delete(`/portfolios/${id}/delete`),
 
   // 포트폴리오 비교 분석 (comparePortfolio와 중복될 수 있으나 명칭 통일 위해 유지)
-  comparePortfolios: (payload) => instance.post("/analysis/compare/portfolio", payload),
+  comparePortfolios: (payload) =>
+    instance.post("/analysis/compare/portfolio", payload),
 };
 // 401 자동-리프레시(동시에 여러 요청 들어와도 1회만 시도)
 let isRefreshing = false;
@@ -107,10 +115,15 @@ instance.interceptors.response.use(
         url.includes("/users/auth/login") ||
         url.includes("/users/auth/refresh")
       ) {
-        if (data.access) localStorage.setItem(ACCESS_KEY, data.access);
+        if (access) {
+          localStorage.setItem(ACCESS_KEY, access);
+          instance.defaults.headers.common[
+            "Authorization"
+          ] = `Bearer ${access}`;
+        }
         if (data.refresh) localStorage.setItem(REFRESH_KEY, data.refresh);
       }
-    } catch (_) { }
+    } catch (_) {}
     return res;
   },
   async (error) => {
@@ -141,7 +154,12 @@ instance.interceptors.response.use(
       try {
         const resp = await authApi.refreshToken();
         const { access, refresh } = resp.data || {};
-        if (access) localStorage.setItem(ACCESS_KEY, access);
+        if (access) {
+          localStorage.setItem(ACCESS_KEY, access);
+          instance.defaults.headers.common[
+            "Authorization"
+          ] = `Bearer ${access}`;
+        }
         if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
 
         const q = window.__refreshQueue || [];

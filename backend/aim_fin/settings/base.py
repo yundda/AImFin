@@ -147,8 +147,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # SimpleJWT 토큰 수명 (쿠키/헤더 어떤 방식이든 공통)
 from datetime import timedelta
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=1),
     "ROTATE_REFRESH_TOKENS": True,               # 리프레시 회전
     "BLACKLIST_AFTER_ROTATION": True,            # 회전 후 이전 리프레시 무효화
     "UPDATE_LAST_LOGIN": True,

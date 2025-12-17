@@ -27,25 +27,27 @@ class CustomLoginView(TokenObtainPairView):
         # 기본 JWT 발급(JSON: access/refresh)
         response = super().post(request, *args, **kwargs)
 
-        # 아래 쿠키 세팅은 남겨둬도 localStorage 방식에 지장 없음(프론트는 JSON만 사용)
-        access_token = response.data.get("access")
-        refresh_token = response.data.get("refresh")
-        if access_token and refresh_token:
-            from django.conf import settings
-            is_secure = not settings.DEBUG
-            samesite = "None" if is_secure else "Lax"
-            response.set_cookie("access", access_token, httponly=True, secure=is_secure, samesite=samesite, path="/")
-            response.set_cookie("refresh", refresh_token, httponly=True, secure=is_secure, samesite=samesite, path="/")
+        # # 아래 쿠키 세팅은 남겨둬도 localStorage 방식에 지장 없음(프론트는 JSON만 사용)
+        # access_token = response.data.get("access")
+        # refresh_token = response.data.get("refresh")
+        # if access_token and refresh_token:
+        #     from django.conf import settings
+        #     is_secure = not settings.DEBUG
+        #     samesite = "None" if is_secure else "Lax"
+        #     response.set_cookie("access", access_token, httponly=True, secure=is_secure, samesite=samesite, path="/")
+        #     response.set_cookie("refresh", refresh_token, httponly=True, secure=is_secure, samesite=samesite, path="/")
         return response
 
 class LogoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     def post(self, request):
         refresh = request.data.get("refresh")
         if refresh:
             try:
                 token = RefreshToken(refresh)
                 token.blacklist()
+            except TokenError:
+                pass
             except Exception:
                 pass
         resp = Response(status=status.HTTP_205_RESET_CONTENT)
