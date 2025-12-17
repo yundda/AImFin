@@ -1,6 +1,7 @@
 <script setup>
 // ✅ 1. 라우터 기능 불러오기
 import { useRouter } from 'vue-router';
+import { authApi } from '@/services/auth.api';
 
 // ✅ 2. 라우터 사용 준비
 const router = useRouter();
@@ -27,9 +28,22 @@ const steps = [
   }
 ];
 
-// ✅ 3. 버튼 클릭 시 설문 페이지로 이동하는 함수
-const startSurvey = () => {
-  router.push('/survey');
+// ✅ 3. 버튼 클릭 시 설문 여부 확인 후 이동
+const startSurvey = async () => {
+  try {
+    const res = await authApi.getSurveyStatus();
+    if (res.data && res.data.exists) {
+      // 이미 설문 진행함 -> 바로 포트폴리오 생성
+      router.push({ name: 'portfolio-create' });
+    } else {
+      // 설문 없음 -> 설문부터
+      router.push('/survey');
+    }
+  } catch (e) {
+    console.error("Survey check failed:", e);
+    // 에러/비로그인 등 -> 일단 설문으로 이동 (가드나 리다이렉트 처리)
+    router.push('/survey');
+  }
 };
 </script>
 

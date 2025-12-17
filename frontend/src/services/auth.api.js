@@ -62,6 +62,7 @@ export const authApi = {
     instance.patch("/users/profile/nickname", { nickname }),
   saveSurvey: (payload) => instance.post("/users/survey/save", payload),
   getSurvey: () => instance.get("/users/survey/current"),
+  getSurveyStatus: () => instance.get("/users/survey/status"),
   savePreference: (payload) => instance.post("/users/preference/save", payload),
 
   // AI 분석
@@ -71,16 +72,19 @@ export const authApi = {
     instance.post(`/analysis/rebalance/portfolio/${portfolioId}`, payload),
   comparePortfolio: (payload) =>
     instance.post("/analysis/compare/portfolio", payload),
-};
 
-  // 포트폴리오 삭제
+  // 포트폴리오 관리
+  getPortfolioList: () => instance.get("/portfolios/list"),
+  getPortfolioDetail: (id) => instance.get(`/portfolios/${id}`),
+  getRepresentativePortfolio: () => instance.get("/portfolios/representative"),
+  savePortfolio: (payload) => instance.post("/portfolios/save", payload),
+  updatePortfolio: (id, payload) => instance.patch(`/portfolios/${id}/update`, payload),
+  setRepresentative: (id) => instance.post("/portfolios/representative", { id }), // Changed to match likely backend expectation or check views.py again
   deletePortfolio: (id) => instance.delete(`/portfolios/${id}/delete`),
 
-  // 포트폴리오 비교 분석
+  // 포트폴리오 비교 분석 (comparePortfolio와 중복될 수 있으나 명칭 통일 위해 유지)
   comparePortfolios: (payload) => instance.post("/analysis/compare/portfolio", payload),
-
-  // 포트폴리오 리밸런싱 분석 요청
-  rebalancePortfolio: (id, payload) => instance.post(`/analysis/rebalance/portfolio/${id}`, payload),
+};
 // 401 자동-리프레시(동시에 여러 요청 들어와도 1회만 시도)
 let isRefreshing = false;
 let queue = [];
@@ -102,7 +106,7 @@ instance.interceptors.response.use(
         if (data.access) localStorage.setItem(ACCESS_KEY, data.access);
         if (data.refresh) localStorage.setItem(REFRESH_KEY, data.refresh);
       }
-    } catch (_) {}
+    } catch (_) { }
     return res;
   },
   async (error) => {

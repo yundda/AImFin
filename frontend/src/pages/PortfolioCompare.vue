@@ -46,6 +46,14 @@ const loadPortfolios = async () => {
         assets: [0,0,0,0,0,0,0] // 7 buckets initialized to 0
       };
     });
+    
+    // 대표 포트폴리오 상단 정렬
+    list.sort((a, b) => {
+      if (a.is_representative && !b.is_representative) return -1;
+      if (!a.is_representative && b.is_representative) return 1;
+      return 0;
+    });
+
     portfolios.value = list;
   } catch (err) {
     console.error("Failed to load portfolios:", err);
@@ -531,8 +539,18 @@ const saveNewPortfolio = async () => {
       <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">포트폴리오 선택</h3><button @click="showSelectModal = false">✕</button></div>
         <div class="space-y-3">
-          <button v-for="p in portfolios.filter(i => !i.isTemp)" :key="p.id" @click="selectPortfolio(p.id)" class="w-full text-left p-4 rounded-xl border hover:border-[#536dfe] bg-gray-50 hover:bg-blue-50 transition-all flex justify-between items-center">
-            <div><div class="font-bold">{{ p.name }}</div><div class="text-xs text-gray-500">{{ p.typeLabel }}</div></div><span v-if="p.isAi" class="text-[10px] bg-purple-100 text-purple-600 px-2 py-1 rounded-full font-bold">AI 추천</span>
+          <button v-for="p in portfolios.filter(i => !i.isTemp && i.id !== selectedIds[1 - selectingIndex])" :key="p.id" @click="selectPortfolio(p.id)" class="w-full text-left p-4 rounded-xl border hover:border-[#536dfe] bg-gray-50 hover:bg-blue-50 transition-all flex justify-between items-center">
+            <div>
+              <div class="font-bold">{{ p.name }}</div>
+              <div class="text-xs text-gray-500">{{ p.typeLabel }}</div>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+              <span v-if="p.is_representative" class="inline-flex items-center gap-1 px-2 py-0.5 bg-[#536dfe] text-white text-[10px] font-bold rounded-full">
+                <span class="w-1.5 h-1.5 bg-white rounded-full"></span>
+                대표
+              </span>
+              <span v-if="p.isAi" class="text-[10px] bg-purple-100 text-purple-600 px-2 py-1 rounded-full font-bold">AI 추천</span>
+            </div>
           </button>
         </div>
       </div>
