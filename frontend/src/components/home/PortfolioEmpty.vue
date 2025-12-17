@@ -1,6 +1,7 @@
 <script setup>
 // ✅ 1. 라우터 기능 불러오기
 import { useRouter } from 'vue-router';
+import { authApi } from '@/services/auth.api';
 
 // ✅ 2. 라우터 사용 준비
 const router = useRouter();
@@ -27,9 +28,22 @@ const steps = [
   }
 ];
 
-// ✅ 3. 버튼 클릭 시 설문 페이지로 이동하는 함수
-const startSurvey = () => {
-  router.push('/survey');
+// ✅ 3. 버튼 클릭 시 설문 여부 확인 후 이동
+const startSurvey = async () => {
+  try {
+    const res = await authApi.getSurveyStatus();
+    if (res.data && res.data.exists) {
+      // 이미 설문 진행함 -> 바로 포트폴리오 생성
+      router.push({ name: 'portfolio-create' });
+    } else {
+      // 설문 없음 -> 설문부터
+      router.push('/survey');
+    }
+  } catch (e) {
+    console.error("Survey check failed:", e);
+    // 에러/비로그인 등 -> 일단 설문으로 이동 (가드나 리다이렉트 처리)
+    router.push('/survey');
+  }
 };
 </script>
 
@@ -63,7 +77,7 @@ const startSurvey = () => {
         @click="startSurvey"
         class="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-[#2C4768] font-sans rounded-full hover:bg-[#1a2f4d] hover:shadow-lg hover:-translate-y-1 focus:outline-none ring-offset-2 focus:ring-2 ring-blue-400"
       >
-        <span class="mr-2 text-lg">🚀</span> 내 맞춤 포트폴리오 확인하기
+        <span class="mr-2 text-lg"></span> 내 맞춤 포트폴리오 확인하기
         <svg class="w-5 h-5 ml-2 -mr-1 transition-transform group-hover:translate-x-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
       </button>
     </div>

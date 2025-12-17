@@ -126,7 +126,8 @@ const expectedReturn = computed(
   () => resultData.value?.metrics?.expected_return_pct || 0
 );
 const riskScore = computed(() => resultData.value?.metrics?.risk_score || 0);
-const rationale = computed(() => resultData.value?.summary || ''); 
+const rationale = computed(() => resultData.value?.rationale || '');
+const summary = computed(() => resultData.value?.summary || ''); 
 const assetLabels = {
   STOCKS_KR: '국내주식',
   STOCKS_GLB: '미국주식',

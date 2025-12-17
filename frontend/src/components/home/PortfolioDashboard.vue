@@ -43,7 +43,7 @@ const portfolio = computed(() => {
     typeLabel: p.profile_label,
     amount: p.amount_krw,
     metrics: metrics,
-    aiComment: p.rationale || p.summary || '', // AI 코멘트 (rationale 우선)
+    aiComment: p.summary || p.rationale || '', // AI 코멘트 (summary 우선)
     assets: assetsArray,
     typeCode: p.profile 
   };
