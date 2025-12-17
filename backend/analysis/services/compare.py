@@ -10,8 +10,10 @@ from jsonschema import validate
 
 from analysis.clients.gpt_client import complete_json
 from analysis.services.metrics import compute_portfolio_metrics
-from portfolios.services.portfolio_rules import get_universe_rules_for
+from analysis.prompts.util import render_prompt
 from analysis.schemas.compare_response import COMPARE_RESPONSE_SCHEMA
+
+from portfolios.services.portfolio_rules import get_universe_rules_for
 
 
 # ---------------- 유틸 ----------------
@@ -69,17 +71,16 @@ def _build_compare_prompt(
     lm = _compute_metrics_safe(left_allocs)
     rm = _compute_metrics_safe(right_allocs)
 
-    tpl = _read_compare_prompt_template()
-    prompt = tpl.safe_substitute(
-        left_alloc_lines=_fmt_alloc_lines(left_allocs),
-        right_alloc_lines=_fmt_alloc_lines(right_allocs),
-        left_er_pct=f"{lm['expected_return_pct']:.2f}",
-        left_risk_score=f"{lm['risk_score']:.2f}",
-        right_er_pct=f"{rm['expected_return_pct']:.2f}",
-        right_risk_score=f"{rm['risk_score']:.2f}",
-        policy_summary=policy_summary,
-    )
-    return prompt
+    ctx = {
+        "left_alloc_lines": _fmt_alloc_lines(left_allocs),
+        "right_alloc_lines": _fmt_alloc_lines(right_allocs),
+        "left_er_pct": f"{lm.get('expected_return_pct', 0.0):.2f}",
+        "left_risk_score": f"{lm.get('risk_score', 0.0):.2f}",
+        "right_er_pct": f"{rm.get('expected_return_pct', 0.0):.2f}",
+        "right_risk_score": f"{rm.get('risk_score', 0.0):.2f}",
+        "policy_summary": policy_summary,
+    }
+    return render_prompt("compare_prompt.txt", ctx)
 
 def _coerce_allocations(spec_or_allocs: Any) -> List[Dict[str, Any]]:
     """

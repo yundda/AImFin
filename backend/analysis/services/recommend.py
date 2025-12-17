@@ -9,6 +9,7 @@ from string import Template
 from analysis.schemas.recommend_response import RECOMMEND_RESPONSE_SCHEMA
 from analysis.clients.gpt_client import complete_json
 from analysis.services.metrics import compute_portfolio_metrics
+from analysis.prompts.util import render_prompt
 from portfolios.services.portfolio_rules import get_universe_rules_for, BucketRule
 from portfolios.services.policy import (
     reconcile_proposed_allocations,
@@ -28,27 +29,23 @@ def _read_prompt_template() -> Template:
     return Template(text)
 
 
-def build_prompt(*, user, amount_krw: int, horizon_desc: str, must_buckets: List[str]) -> str:
-    policy = get_universe_rules_for(user)  # rules + eligible
-
-    # 버킷별 eligible 텍스트
+def build_prompt(*, user, amount_krw: int, horizon_desc: str, must_buckets: list[str]) -> str:
+    policy = get_universe_rules_for(user)
     eligible_lines = []
     for b in [r["bucket"] for r in policy["buckets"]]:
-        assets = next(x for x in policy["buckets"] if x["bucket"] == b)["eligible_assets"]
-        eligible_lines.append(f"- {b}: [{', '.join(assets)}]" if assets else f"- {b}: []")
-    eligible_assets_by_bucket = "\n".join(eligible_lines)
+        eligible = next(x for x in policy["buckets"] if x["bucket"] == b)["eligible_assets"]
+        eligible_lines.append(f"- {b}: [{', '.join(eligible)}]" if eligible else f"- {b}: []")
 
-    tpl_text = _read_prompt_template()
     ctx = {
         "risk_profile": policy["profile"],
         "risk_label": user.risk_snapshot.latest_result.get_profile_display(),
         "amount_krw": f"{amount_krw:,} KRW",
         "horizon_desc": horizon_desc,
-        "must_buckets": "[" + ", ".join(must_buckets or []) + "]",
+        "must_buckets": must_buckets,
         "policy_summary": policy["policy_summary"],
-        "eligible_assets_by_bucket": eligible_assets_by_bucket,
+        "eligible_assets_by_bucket": "\n".join(eligible_lines),
     }
-    return Template(tpl_text).safe_substitute(**ctx)
+    return render_prompt("recommend_prompt.txt", ctx)
 
 
 # ---- 로컬 헬퍼들 -------------------------------------------------------------
