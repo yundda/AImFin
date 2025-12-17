@@ -8,30 +8,35 @@ const REFRESH_KEY = "refresh_token";
 const instance = axios.create({
   baseURL: API_BASE,
   headers: { "Content-Type": "application/json" },
-  withCredentials: true, // 쿠키 사용 시
+  withCredentials: true, // 쿠키 사용하는 경우 대비(로컬은 영향 적음)
 });
 
-// 요청 인터셉터: Authorization 자동 첨부
-// 요청 인터셉터에서 ↓ 추가
+// ---- 요청 인터셉터: auth 엔드포인트는 Authorization 제외 ----
 instance.interceptors.request.use((config) => {
-  const isRefresh = config.url?.includes("/users/auth/refresh");
-  const access = localStorage.getItem("access_token");
-  if (!isRefresh && access) {
-    // <-- 리프레시 요청은 스킵
-    config.headers = config.headers || {};
-    if (!config.headers["Authorization"]) {
-      config.headers["Authorization"] = `Bearer ${access}`;
+  const url = config.url || "";
+  const isAuthEndpoint =
+    url.includes("/users/auth/login") ||
+    url.includes("/users/auth/signup") ||
+    url.includes("/users/auth/refresh") ||
+    url.includes("/users/auth/logout");
+
+  if (!isAuthEndpoint) {
+    const access = localStorage.getItem(ACCESS_KEY);
+    if (access) {
+      config.headers = config.headers || {};
+      if (!config.headers["Authorization"]) {
+        config.headers["Authorization"] = `Bearer ${access}`;
+      }
     }
   }
   return config;
 });
 
-// 인증 관련 API 래퍼
+// ---- 인증 API 래퍼 ----
 export const authApi = {
-  // 회원가입
   signup: (userData) => instance.post("/users/auth/signup", userData),
 
-  // 로그인: 받은 토큰 저장
+  // 일반 로그인: 응답 토큰을 localStorage에 저장
   login: async (credentials) => {
     const resp = await instance.post("/users/auth/login", credentials);
     const { access, refresh } = resp.data || {};
@@ -40,7 +45,6 @@ export const authApi = {
     return resp;
   },
 
-  // 로그아웃: 서버 호출 후 로컬 토큰 삭제
   logout: async () => {
     try {
       await instance.post("/users/auth/logout");
@@ -50,13 +54,12 @@ export const authApi = {
     }
   },
 
-  // 토큰 리프레시
   refreshToken: () => {
     const refresh = localStorage.getItem(REFRESH_KEY);
     return instance.post("/users/auth/refresh", { refresh });
   },
 
-  // 프로필/설문/선호/추천
+  // 프로필/설문/선호
   getProfile: () => instance.get("/users/profile"),
   updateNickname: (nickname) =>
     instance.patch("/users/profile/nickname", { nickname }),
@@ -94,6 +97,7 @@ const flush = (newToken) => {
   queue = [];
 };
 
+// ---- 응답 인터셉터: login/refresh 시 토큰 동기화 ----
 instance.interceptors.response.use(
   (res) => {
     try {
@@ -113,7 +117,6 @@ instance.interceptors.response.use(
     const original = error.config || {};
     const status = error.response?.status || 0;
     const url = original?.url || "";
-
     const isAuthCall =
       url?.includes("/users/auth/login") ||
       url?.includes("/users/auth/refresh");
@@ -121,31 +124,37 @@ instance.interceptors.response.use(
     if (status === 401 && !original._retry && !isAuthCall) {
       original._retry = true;
 
-      if (isRefreshing) {
+      // 동시 401 방지를 위한 간단 큐
+      if (window.__isRefreshing) {
         return new Promise((resolve, reject) => {
-          enqueue((newAccess) => {
-            original.headers = original.headers || {};
-            original.headers["Authorization"] = `Bearer ${newAccess}`;
-            instance.request(original).then(resolve).catch(reject);
-          });
+          (window.__refreshQueue = window.__refreshQueue || []).push(
+            (newAccess) => {
+              original.headers = original.headers || {};
+              original.headers["Authorization"] = `Bearer ${newAccess}`;
+              instance.request(original).then(resolve).catch(reject);
+            }
+          );
         });
       }
 
-      isRefreshing = true;
+      window.__isRefreshing = true;
       try {
         const resp = await authApi.refreshToken();
         const { access, refresh } = resp.data || {};
         if (access) localStorage.setItem(ACCESS_KEY, access);
         if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
-        isRefreshing = false;
-        flush(access);
+
+        const q = window.__refreshQueue || [];
+        q.forEach((cb) => cb(access));
+        window.__refreshQueue = [];
+        window.__isRefreshing = false;
 
         original.headers = original.headers || {};
         original.headers["Authorization"] = `Bearer ${access}`;
         return instance.request(original);
       } catch (e) {
-        isRefreshing = false;
-        queue = [];
+        window.__isRefreshing = false;
+        window.__refreshQueue = [];
         localStorage.removeItem(ACCESS_KEY);
         localStorage.removeItem(REFRESH_KEY);
         return Promise.reject(e);
