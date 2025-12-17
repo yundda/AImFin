@@ -1,3 +1,4 @@
+# users/views.py
 import re
 from django.contrib.auth import get_user_model
 from rest_framework import status, permissions
@@ -6,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.views import TokenObtainPairView # ✅ 추가
+from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import status
 
 from .serializers import RegisterSerializer
@@ -23,43 +24,23 @@ def signup(request):
 
 class CustomLoginView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
-        # 1) 기본 로직으로 토큰 생성
+        # 기본 JWT 발급(JSON: access/refresh)
         response = super().post(request, *args, **kwargs)
-        
-        # 2) 토큰 추출
+
+        # 아래 쿠키 세팅은 남겨둬도 localStorage 방식에 지장 없음(프론트는 JSON만 사용)
         access_token = response.data.get("access")
         refresh_token = response.data.get("refresh")
-
         if access_token and refresh_token:
-            # 3) 쿠키 설정 (Social Login과 동일한 설정)
             from django.conf import settings
             is_secure = not settings.DEBUG
             samesite = "None" if is_secure else "Lax"
-            
-            response.set_cookie(
-                "access", 
-                access_token, 
-                httponly=True, 
-                secure=is_secure, 
-                samesite=samesite, 
-                path="/"
-            )
-            response.set_cookie(
-                "refresh", 
-                refresh_token, 
-                httponly=True, 
-                secure=is_secure, 
-                samesite=samesite, 
-                path="/"
-            )
-        
+            response.set_cookie("access", access_token, httponly=True, secure=is_secure, samesite=samesite, path="/")
+            response.set_cookie("refresh", refresh_token, httponly=True, secure=is_secure, samesite=samesite, path="/")
         return response
 
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-
     def post(self, request):
-        # 클라이언트가 보낸 refresh 토큰을 블랙리스트 처리(없어도 205 반환)
         refresh = request.data.get("refresh")
         if refresh:
             try:
@@ -74,66 +55,56 @@ class LogoutView(APIView):
 
 class CookieRefreshView(APIView):
     def post(self, request):
+        from django.conf import settings
         refresh = request.COOKIES.get("refresh") or request.data.get("refresh")
         if not refresh:
             return Response({"detail": "no refresh"}, status=400)
         try:
             token = RefreshToken(refresh)
             new_access = str(token.access_token)
-            new_refresh = str(token)  # 회전 설정 시 새 토큰 생성됨
+            new_refresh = str(token)
         except TokenError:
             return Response({"detail": "invalid refresh"}, status=401)
 
-        resp = Response({"detail": "rotated"})
-        resp.set_cookie("access", new_access, httponly=True, samesite="None", secure=False)
-        resp.set_cookie("refresh", new_refresh, httponly=True, samesite="None", secure=False)
+        is_secure = not settings.DEBUG
+        samesite = "None" if is_secure else "Lax"
+        resp = Response({"access": new_access, "refresh": new_refresh}, status=200)  # JSON도 함께 반환
+        resp.set_cookie("access", new_access, httponly=True, samesite=samesite, secure=is_secure, path="/")
+        resp.set_cookie("refresh", new_refresh, httponly=True, samesite=samesite, secure=is_secure, path="/")
         return resp
 
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
         u = request.user
-
-        # 최신 성향: 스냅샷 우선
         snap = getattr(u, "risk_snapshot", None)
         sr = getattr(snap, "latest_result", None) if snap else None
-
         data = {
             "id": u.id,
             "email": u.email,
             "nickname": u.nickname or "",
-
-            # 최신 성향 요약(없으면 null)
-            "survey_profile": sr.profile if sr else None,                 # 예: "BALANCED"
-            "survey_profile_label": sr.get_profile_display() if sr else None,  # 예: "중립형"
-            "survey_total_score": float(sr.total_score) if sr else None,  # 예: 73.33
+            "survey_profile": sr.profile if sr else None,
+            "survey_profile_label": sr.get_profile_display() if sr else None,
+            "survey_total_score": float(sr.total_score) if sr else None,
             "last_survey_at": sr.created_at.isoformat() if sr else None,
-
-            # 이력/온보딩 편의정보
             "survey_count": SurveyResult.objects.filter(user=u).count(),
             "needs_nickname": not bool((u.nickname or "").strip()),
             "has_survey": bool(sr),
         }
         return Response(data, status=status.HTTP_200_OK)
+
 class NicknameView(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
-        """현재 사용자 닉네임 조회"""
         return Response({"nickname": request.user.nickname or ""}, status=status.HTTP_200_OK)
-
     def patch(self, request):
-        """닉네임 설정/수정"""
         nick = (request.data.get("nickname") or "").strip()
-
         if not nick:
             return Response({"detail": "nickname is required"}, status=status.HTTP_400_BAD_REQUEST)
         if len(nick) > 20:
             return Response({"detail": "nickname too long (max 20)"}, status=status.HTTP_400_BAD_REQUEST)
         if not re.fullmatch(r"[A-Za-z0-9가-힣 _.\-]{1,20}", nick):
             return Response({"detail": "invalid nickname (allowed: letters, digits, 한글, space, . _ -)"}, status=status.HTTP_400_BAD_REQUEST)
-
         user = request.user
         user.nickname = nick
         user.save(update_fields=["nickname"])

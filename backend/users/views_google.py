@@ -1,10 +1,11 @@
-# users/views_social.py
+# users/views_google.py
 from django.conf import settings
 from django.shortcuts import redirect
 from django.utils.crypto import get_random_string
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
+from urllib.parse import quote_plus
 
 from .utils.pkce_store import save_verifier, pop_verifier, save_nonce, pop_nonce
 from .utils.oauth_google import gen_pkce, build_auth_url, exchange_code_for_token
@@ -24,7 +25,6 @@ class GoogleStartView(APIView):
         code_verifier, code_challenge = gen_pkce()
         save_verifier(state, code_verifier)
         save_nonce(state, nonce)
-        # build_auth_url 내부에서 settings.GOOGLE_REDIRECT_URI 사용하도록 구현되어 있어야 함
         url = build_auth_url(state, code_challenge) + f"&nonce={nonce}"
         return redirect(url)
 
@@ -40,7 +40,7 @@ class GoogleCallbackView(APIView):
         if not code_verifier or not nonce:
             return Response({"detail": "invalid state/nonce"}, status=400)
 
-        # 1) 코드→토큰 교환
+        # 1) 코드→토큰
         try:
             token_json = exchange_code_for_token(code, code_verifier)
         except Exception as e:
@@ -51,31 +51,21 @@ class GoogleCallbackView(APIView):
         if not id_token:
             return Response({"detail": "no id_token"}, status=400)
 
-        # 2) JWKS 서명 검증 + aud/iss/exp + nonce + at_hash(access_token 필요)
+        # 2) 검증
         try:
             payload = verify_id_token(id_token, nonce=nonce, access_token=access_token)
         except Exception as e:
             return Response({"detail": f"id_token verify failed: {e}"}, status=400)
 
         email = payload.get("email") or f"google_{payload['sub']}@google.local"
-        # 닉네임 없으면 기본값
         defaults = {"nickname": payload.get("name") or email.split("@")[0]}
-        user, created = User.objects.get_or_create(email=email, defaults=defaults)
+        user, _ = User.objects.get_or_create(email=email, defaults=defaults)
 
-        # 3) JWT 발급
+        # 3) 서비스 토큰 발급
         tokens = issue_tokens(user)
 
-        # 4) 쿠키 발급 (개발/운영 분기)
-        is_secure = not settings.DEBUG
-        # SameSite 규칙:
-        # - 운영(https, 크로스사이트): SameSite=None + Secure=True 필수
-        # - 로컬(http): SameSite="Lax", Secure=False 권장
-        samesite = "None" if is_secure else "Lax"
-
-        has_nick = bool(getattr(user, "nickname", "") and user.nickname.strip())
-        redirect_path = "/onboarding/nickname" if (created or not has_nick) else "/"
-
-        resp = redirect(f"{settings.FRONTEND_URL}{redirect_path}")
-        resp.set_cookie("access", tokens["access"], httponly=True, secure=is_secure, samesite=samesite, path="/")
-        resp.set_cookie("refresh", tokens["refresh"], httponly=True, secure=is_secure, samesite=samesite, path="/")
-        return resp
+        # 4) 프런트 콜백 해시로 토큰 전달 → 프런트가 localStorage 저장
+        FRONT = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+        access_q = quote_plus(tokens["access"])
+        refresh_q = quote_plus(tokens["refresh"])
+        return redirect(f"{FRONT}/oauth/callback#provider=google&access={access_q}&refresh={refresh_q}")
