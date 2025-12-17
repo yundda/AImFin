@@ -10,6 +10,10 @@ const props = defineProps({
   size: {
     type: String,
     default: 'w-20 h-20'
+  },
+  showTooltip: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -41,7 +45,7 @@ const chartStyle = computed(() => {
 
     <!-- ✅ 툴팁 수정: 위쪽(bottom-full) -> 왼쪽(right-full)으로 변경 -->
     <!-- z-index를 높여서 다른 요소 위로 뜨게 함 -->
-    <div class="absolute top-1/2 right-full -translate-y-1/2 mr-3 w-32 bg-gray-800 text-white text-xs rounded-lg py-2 px-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50 pointer-events-none">
+    <div v-if="showTooltip" class="absolute top-1/2 right-full -translate-y-1/2 mr-3 w-32 bg-gray-800 text-white text-xs rounded-lg py-2 px-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50 pointer-events-none">
       
       <div class="flex flex-col gap-1">
         <div v-for="(val, i) in assets" :key="i" class="flex justify-between items-center">

@@ -1,30 +1,64 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import SimpleDonut from '@/components/common/SimpleDonut.vue';
 
-const router = useRouter();
-const portfolio = ref(null);
-
-onMounted(() => {
-  const saved = JSON.parse(localStorage.getItem('my_portfolios') || '[]');
-  if (saved.length > 0) {
-    portfolio.value = saved.find(p => p.isMain) || saved[0];
+const props = defineProps({
+  portfolioData: {
+    type: Object,
+    required: true
   }
 });
 
-// 성향별 예상 수익률 및 위험도 점수 (0~100)
-const typeStats = {
-  Anjung: { returnRate: 3.2, riskScore: 10 },        // 초록
-  AnjungChugu: { returnRate: 5.5, riskScore: 30 },   // 연두
-  Balanced: { returnRate: 8.5, riskScore: 50 },      // 노랑
-  Jeogeug: { returnRate: 12.4, riskScore: 70 },      // 주황
-  Aggressive: { returnRate: 15.8, riskScore: 90 }    // 빨강
-};
+const router = useRouter();
 
+// API 데이터를 UI 포맷으로 변환
+const portfolio = computed(() => {
+  if (!props.portfolioData) return null;
+  
+  const p = props.portfolioData;
+  const metrics = p.metrics || { expected_return_pct: 0, risk_score: 0 };
+  
+  // 자산 배분 집계 (4개 카테고리로 통합)
+  let stocks = 0;
+  let bonds = 0;
+  let alts = 0;
+  let cash = 0;
+  
+  if (p.allocations) {
+    p.allocations.forEach(a => {
+      const w = a.weight_pct || 0;
+      if (['STOCKS_KR', 'STOCKS_GLB'].includes(a.bucket)) stocks += w;
+      else if (['BONDS_KR', 'BONDS_GLB'].includes(a.bucket)) bonds += w;
+      else if (['ALTERNATIVES', 'FUNDS'].includes(a.bucket)) alts += w;
+      else if (['CASH'].includes(a.bucket)) cash += w;
+    });
+  }
+  
+  // 소수점 1자리 처리
+  stocks = Number(stocks.toFixed(1));
+  bonds = Number(bonds.toFixed(1));
+  alts = Number(alts.toFixed(1));
+  cash = Number(cash.toFixed(1));
+
+  return {
+    name: p.name,
+    typeLabel: p.profile_label,
+    amount: p.amount_krw,
+    metrics: metrics,
+    aiComment: p.rationale || p.summary || '', // AI 코멘트 (rationale 우선)
+    assets: [stocks, bonds, alts, cash],
+    typeCode: p.profile 
+  };
+});
+
+// 통계 (API Metrics 사용)
 const stats = computed(() => {
   if (!portfolio.value) return { returnRate: 0, riskScore: 0 };
-  return typeStats[portfolio.value.typeCode] || { returnRate: 8.5, riskScore: 50 };
+  return {
+    returnRate: portfolio.value.metrics.expected_return_pct,
+    riskScore: portfolio.value.metrics.risk_score
+  };
 });
 
 const formattedAmount = computed(() => {
@@ -34,7 +68,7 @@ const formattedAmount = computed(() => {
 const assetsInfo = [
   { label: '국내/해외 주식', color: 'bg-[#536dfe]' },
   { label: '채권', color: 'bg-[#a5b4fc]' },
-  { label: '부동산/원자재', color: 'bg-[#cbd5e1]' },
+  { label: '부동산/펀드', color: 'bg-[#cbd5e1]' }, // 원자재 -> 펀드 포함으로 변경
   { label: '현금성 자산', color: 'bg-[#e2e8f0]' },
 ];
 
@@ -70,11 +104,16 @@ const modifyPortfolio = () => { router.push({ name: 'portfolio-create', query: {
           </h2>
           <p class="text-gray-500 mb-6">{{ portfolio.typeLabel }} 성향 기반의 AI 맞춤 전략입니다.</p>
 
-          <div v-if="portfolio.memo" class="mb-8 relative pl-4 border-l-4 border-gray-200">
-            <p class="text-gray-600 font-medium italic">"{{ portfolio.memo }}"</p>
+          <div v-if="portfolio.aiComment" class="mb-8 bg-blue-50/50 p-5 rounded-2xl border border-blue-100/50">
+            <h4 class="text-sm font-bold text-[#536dfe] mb-3 flex items-center gap-2">
+              <span class="text-lg">💡</span> AI 투자 코멘트
+            </h4>
+            <p class="text-gray-700 text-sm leading-relaxed whitespace-pre-line font-medium">
+              {{ portfolio.aiComment }}
+            </p>
           </div>
 
-          <!-- ✅ 핵심 지표 카드 (3개로 확장) -->
+          <!-- ✅ 핵심 지표 카드 -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- 1. 총 자산 -->
             <div class="bg-gray-50 rounded-2xl p-5 border border-gray-100 flex flex-col justify-between">
@@ -88,27 +127,25 @@ const modifyPortfolio = () => { router.push({ name: 'portfolio-create', query: {
               <div class="text-xl font-bold text-[#536dfe]">+{{ stats.returnRate }}%</div>
             </div>
 
-            <!-- 3. 위험도 게이지 (가로 전체 차지) -->
+            <!-- 3. 위험도 게이지 -->
             <div class="bg-gray-50 rounded-2xl p-5 border border-gray-100 sm:col-span-2">
-              <div class="flex justify-between items-end mb-2">
-                <span class="text-xs font-bold text-gray-400">위험도 레벨</span>
+              <div class="flex justify-between items-end mb-2 px-1">
+                <span class="text-xs font-bold text-gray-400">위험도 진단</span>
                 <span class="text-sm font-bold" :class="stats.riskScore > 60 ? 'text-red-500' : (stats.riskScore > 40 ? 'text-yellow-500' : 'text-green-500')">
-                  {{ stats.riskScore > 60 ? '높음' : (stats.riskScore > 40 ? '중간' : '낮음') }}
+                  {{ stats.riskScore }}점 ({{ stats.riskScore > 60 ? '높음' : (stats.riskScore > 40 ? '중간' : '낮음') }})
                 </span>
               </div>
               
               <!-- ✅ 그라데이션 게이지 바 -->
-              <div class="h-3 w-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 rounded-full relative">
-                <!-- 인디케이터 (검은 막대) -->
+              <div class="h-3 w-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 rounded-full relative shadow-inner">
                 <div 
-                  class="absolute top-1/2 -translate-y-1/2 w-1 h-5 bg-gray-800 rounded-sm shadow-sm transition-all duration-1000 ease-out"
+                  class="absolute top-1/2 -translate-y-1/2 w-1.5 h-6 bg-gray-800 border-2 border-white rounded-sm shadow-md transition-all duration-1000 ease-out"
                   :style="{ left: stats.riskScore + '%' }"
                 ></div>
               </div>
               
-              <div class="flex justify-between text-[10px] text-gray-400 mt-1.5 font-medium">
+              <div class="flex justify-between text-[10px] text-gray-400 mt-2 font-medium px-1">
                 <span>안전</span>
-                <span>중간</span>
                 <span>위험</span>
               </div>
             </div>
