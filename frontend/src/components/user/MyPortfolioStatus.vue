@@ -79,6 +79,20 @@ const assetsInfo = [
   { label: '펀드', color: '#8b5cf6' },
   { label: '현금성자산', color: '#cbd5e1' },
 ];
+
+const handleCreatePortfolio = async () => {
+  try {
+    const res = await authApi.getSurveyStatus();
+    if (res.data && res.data.exists) {
+      router.push({ name: 'portfolio-create' });
+    } else {
+      router.push('/survey');
+    }
+  } catch (e) {
+    console.error("Survey check failed:", e);
+    router.push('/survey');
+  }
+};
 </script>
 
 <template>
@@ -114,7 +128,7 @@ const assetsInfo = [
       <div v-else-if="portfolios.length === 0" class="flex-1 flex flex-col items-center justify-center text-center">
         <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-3xl mb-4 text-[#536dfe]">📈</div>
         <p class="text-gray-400 text-sm mb-6">아직 생성된 포트폴리오가 없습니다.</p>
-        <button @click="router.push('/survey')" class="px-8 py-3 bg-[#536dfe] text-white font-bold rounded-xl hover:bg-[#4059e0] shadow-lg">
+        <button @click="handleCreatePortfolio" class="px-8 py-3 bg-[#536dfe] text-white font-bold rounded-xl hover:bg-[#4059e0] shadow-lg">
           포트폴리오 만들기
         </button>
       </div>
