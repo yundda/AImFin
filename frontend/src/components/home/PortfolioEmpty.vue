@@ -77,7 +77,7 @@ const startSurvey = async () => {
         @click="startSurvey"
         class="group relative inline-flex items-center justify-center px-8 py-4 font-bold text-white transition-all duration-200 bg-[#2C4768] font-sans rounded-full hover:bg-[#1a2f4d] hover:shadow-lg hover:-translate-y-1 focus:outline-none ring-offset-2 focus:ring-2 ring-blue-400"
       >
-        <span class="mr-2 text-lg">🚀</span> 내 맞춤 포트폴리오 확인하기
+        <span class="mr-2 text-lg"></span> 내 맞춤 포트폴리오 확인하기
         <svg class="w-5 h-5 ml-2 -mr-1 transition-transform group-hover:translate-x-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
       </button>
     </div>
