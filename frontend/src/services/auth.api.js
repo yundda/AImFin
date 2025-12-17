@@ -65,6 +65,12 @@ export const authApi = {
 
   // 포트폴리오 삭제
   deletePortfolio: (id) => instance.delete(`/portfolios/${id}/delete`),
+
+  // 포트폴리오 비교 분석
+  comparePortfolios: (payload) => instance.post("/analysis/compare/portfolio", payload),
+
+  // 포트폴리오 리밸런싱 분석 요청
+  rebalancePortfolio: (id, payload) => instance.post(`/analysis/rebalance/portfolio/${id}`, payload),
 };
 
 // Interceptor로 401 발생 시 자동 갱신 처리

@@ -51,6 +51,7 @@ onMounted(() => {
 });
 
 // 화면 표시용 Computed Properties
+// 화면 표시용 Computed Properties
 const profileLabel = computed(() => resultData.value?.profile_label || '분석 중');
 const profileColor = computed(() => {
   const p = resultData.value?.profile;
@@ -64,17 +65,24 @@ const profileColor = computed(() => {
 
 const pieStyle = computed(() => {
   if (!resultData.value) return '';
-  // final_allocations를 기반으로 차트 스타일 생성
-  // (임시 단순화: 주요 4개 섹터만 색상 매핑하거나, 전체를 gradient로 처리)
-  // 여기서는 간단히 그라데이션 생성을 위해 weight 누적 사용
+  // 7개 버킷에 대응하는 색상 매핑
+  const colorMap = {
+    'STOCKS_KR': '#536dfe', 
+    'STOCKS_GLB': '#3b82f6',
+    'BONDS_KR': '#10b981', 
+    'BONDS_GLB': '#34d399',
+    'ALTERNATIVES': '#f59e0b', 
+    'FUNDS': '#8b5cf6', 
+    'CASH': '#cbd5e1'
+  };
+  
   let gradient = 'conic-gradient(';
   let currentPos = 0;
-  const colors = ['#536dfe', '#a5b4fc', '#cbd5e1', '#e2e8f0', '#f1f5f9', '#94a3b8', '#64748b'];
   
-  resultData.value.final_allocations.forEach((item, index) => {
+  resultData.value.final_allocations.forEach((item) => {
     const start = currentPos;
     const end = currentPos + item.weight_pct;
-    const color = colors[index % colors.length];
+    const color = colorMap[item.bucket] || '#cccccc'; // Fallback color
     gradient += `${color} ${start}% ${end}%, `;
     currentPos = end;
   });
@@ -95,13 +103,12 @@ const savePortfolio = async () => {
       profile: resultData.value.profile,
       profile_label: resultData.value.profile_label,
       horizon_desc: resultData.value.horizon_desc,
-      must_buckets: mustBuckets, // query param or resultData
+      must_buckets: mustBuckets, 
       allocations: resultData.value.final_allocations,
       metrics: resultData.value.metrics,
       rationale: resultData.value.rationale,
       summary: resultData.value.summary,
       risks: resultData.value.risks,
-      set_representative: true // 기본적으로 대표로 설정할지 여부 (UI에서 선택받을 수도 있음, 일단 true)
     };
 
     await authApi.savePortfolio(payload);
@@ -116,15 +123,15 @@ const savePortfolio = async () => {
 // 메트릭 표시용
 const expectedReturn = computed(() => resultData.value?.metrics?.expected_return_pct || 0);
 const riskScore = computed(() => resultData.value?.metrics?.risk_score || 0);
-const rationale = computed(() => resultData.value?.summary || ''); // rationale 대신 summary 사용
+const rationale = computed(() => resultData.value?.summary || ''); 
 const assetLabels = {
-  STOCKS_KR: '국내 주식',
-  STOCKS_GLB: '미국 주식',
-  BONDS_KR: '국내 채권',
-  BONDS_GLB: '해외 채권',
+  STOCKS_KR: '국내주식',
+  STOCKS_GLB: '미국주식',
+  BONDS_KR: '국내채권',
+  BONDS_GLB: '해외채권',
   ALTERNATIVES: '대체투자',
   FUNDS: '펀드',
-  CASH: '현금성 자산'
+  CASH: '현금성자산'
 };
 </script>
 
