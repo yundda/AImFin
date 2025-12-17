@@ -1,33 +1,29 @@
 # analysis/services/rebalance.py
 from __future__ import annotations
 from typing import List, Dict
-from string import Template
 
-from django.conf import settings
 from django.utils import timezone
 from jsonschema import validate
 
 from analysis.schemas.recommend_response import RECOMMEND_RESPONSE_SCHEMA
 from analysis.clients.gpt_client import complete_json
 from analysis.services.metrics import compute_portfolio_metrics
+from analysis.prompts.util import render_prompt
+
 from portfolios.models import Portfolio
 from portfolios.services.portfolio_rules import get_universe_rules_for, BucketRule
 from portfolios.services.policy import (
     reconcile_proposed_allocations,
     normalize_assets_within_bucket,
 )
-# ---------------------------------------------------------------------
 
-def _read_prompt_template() -> str:
-    path = settings.BASE_DIR / "analysis" / "prompts" / "rebalance_eval_prompt.txt"
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+# ---------------------------------------------------------------------
 
 def _format_allocations_lines(allocs: List[dict]) -> str:
     # - STOCKS_KR: 18.00%
     # - BONDS_KR:  25.00%
     lines = []
-    for row in allocs:
+    for row in allocs or []:
         b = row["bucket"]
         w = float(row.get("weight_pct", 0))
         lines.append(f"- {b}: {w:.2f}%")
@@ -77,28 +73,30 @@ def evaluate_rebalance(
     must_buckets = list(p.must_buckets or [])
 
     # 1) 정책/유니버스 수집
-    uni = get_universe_rules_for(user)  # {"rules": RuleTable, "policy_summary": ..., "buckets":[{bucket, eligible_assets}, ...]}
+    uni = get_universe_rules_for(user)  # {"rules": ..., "policy_summary": ..., "buckets":[{bucket, eligible_assets}, ...]}
     rules: Dict[str, BucketRule] = uni["rules"]
     _apply_must_buckets_min(rules, must_buckets, must_min=3.0)
 
     # 2) 버킷별 편입 가능 종목 텍스트
-    eligible_lines = []
-    for b in [r["bucket"] for r in uni["buckets"]]:
-        assets = [a for a in next(x for x in uni["buckets"] if x["bucket"] == b)["eligible_assets"]]
-        eligible_lines.append(f"- {b}: [{', '.join(assets)}]" if assets else f"- {b}: []")
-    eligible_assets_by_bucket = "\n".join(eligible_lines)
+    elig_map: Dict[str, List[str]] = {b["bucket"]: list(b.get("eligible_assets") or []) for b in uni.get("buckets", [])}
+    eligible_assets_by_bucket = "\n".join(
+        f"- {bk}: [{', '.join(elig_map.get(bk, []))}]" if elig_map.get(bk) else f"- {bk}: []"
+        for bk in elig_map.keys()
+    )
 
-    # 3) 프롬프트 구성($ 템플릿)
-    tpl = Template(_read_prompt_template())
-    prompt = tpl.safe_substitute(
-        amount_krw=f"{amount_krw:,} KRW",
-        risk_profile=p.profile,
-        risk_label=p.profile_label,
-        horizon_desc=horizon_desc,
-        current_allocations=_format_allocations_lines(allocations_input),
-        must_buckets=must_buckets,
-        policy_summary=uni["policy_summary"],
-        eligible_assets_by_bucket=eligible_assets_by_bucket,
+    # 3) 프롬프트 구성(공용 유틸로 $-변수 템플릿 안전 치환)
+    prompt = render_prompt(
+        "rebalance_eval_prompt.txt",
+        {
+            "amount_krw": f"{amount_krw:,} KRW",
+            "risk_profile": p.profile,
+            "risk_label": p.profile_label,
+            "horizon_desc": horizon_desc,
+            "current_allocations": _format_allocations_lines(allocations_input),
+            "must_buckets": must_buckets,
+            "policy_summary": uni.get("policy_summary", ""),
+            "eligible_assets_by_bucket": eligible_assets_by_bucket,
+        },
     )
 
     # 4) GPT 호출 + 스키마 검증
@@ -123,7 +121,7 @@ def evaluate_rebalance(
     risk_score = _risk_score_from_metrics(metrics_all)
 
     # 8) 최종 응답(recommend와 동일 포맷)
-    result = {
+    return {
         "profile": p.profile,
         "profile_label": p.profile_label,
         "amount_krw": amount_krw,
@@ -141,4 +139,3 @@ def evaluate_rebalance(
         },
         "generated_at": timezone.now().isoformat(),
     }
-    return result
