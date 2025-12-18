@@ -185,3 +185,21 @@ class UserPreferenceSnapshot(models.Model):
 
     def __str__(self):
         return f"UserPreferenceSnapshot(user={self.user_id}, pref_id={self.latest_pref_id})"
+class UserMarketPreference(models.Model):
+    """
+    유저가 메인 화면 상단 티커에서 보고 싶은 지수/종목 리스트
+    indices 예: ["KS11", "KQ11", "USD/KRW", "AAPL", "005930"]
+    """
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="market_preference"
+    )
+    indices = models.JSONField(default=list)  # ["KS11", "KQ11", "USD/KRW"]
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "user_market_preference"
+
+    def __str__(self):
+        return f"{self.user.email} market pref"

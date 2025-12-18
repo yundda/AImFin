@@ -17,7 +17,7 @@ const handleLogout = async() => {
     <!-- 헤더 (네비게이션) -->
     <nav class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 sticky top-0 z-50">
       <!-- 1. 로고: 클릭 시 메인('/')으로 이동 -->
-      <router-link to="/" class="text-xl font-bold text-[#536dfe]">AImFIN.</router-link>
+      <router-link to="/" class="text-xl font-bold text-[#283593]">AImFIN.</router-link>
       
       <!-- 우측 메뉴 -->
       <div class="flex items-center gap-6">

@@ -68,4 +68,13 @@ class GoogleCallbackView(APIView):
         FRONT = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
         access_q = quote_plus(tokens["access"])
         refresh_q = quote_plus(tokens["refresh"])
-        return redirect(f"{FRONT}/oauth/callback#provider=google&access={access_q}&refresh={refresh_q}")
+        
+        response = redirect(f"{FRONT}/oauth/callback#provider=google&access={access_q}&refresh={refresh_q}")
+        
+        # 쿠키 세팅 추가
+        is_secure = not settings.DEBUG
+        samesite = "None" if is_secure else "Lax"
+        response.set_cookie("access", tokens["access"], httponly=True, secure=is_secure, samesite=samesite, path="/")
+        response.set_cookie("refresh", tokens["refresh"], httponly=True, secure=is_secure, samesite=samesite, path="/")
+        
+        return response

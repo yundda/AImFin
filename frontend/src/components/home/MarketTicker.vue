@@ -1,9 +1,28 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { marketApi } from '@/services/market-index.api';
+import MarketSettingsModal from './MarketSettingsModal.vue';
 
 const indices = ref([]);
 const loading = ref(true);
+const isSettingsOpen = ref(false);
+
+const fetchData = async () => {
+    loading.value = true;
+    try {
+        const data = await marketApi.getIndices();
+        // 데이터가 모자라면 반복 (UI 효과용) - 와이드 스크린 대응을 위해 넉넉히 10번 반복
+        if (data.length > 0) {
+            indices.value = Array(10).fill(data).flat();
+        } else {
+            indices.value = [];
+        }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        loading.value = false;
+    }
+};
 
 // 간단한 스파크라인 SVG 경로 생성 함수
 const getSvgPath = (data, width = 60, height = 30) => {
@@ -20,14 +39,8 @@ const getSvgPath = (data, width = 60, height = 30) => {
   }).join(' ');
 };
 
-onMounted(async () => {
-  try {
-    const data = await marketApi.getIndices();
-    // 무한 스크롤을 위해 데이터를 4번 정도 복제해서 길게 만듭니다.
-    indices.value = [...data, ...data, ...data, ...data]; 
-  } finally {
-    loading.value = false;
-  }
+onMounted(() => {
+  fetchData();
 });
 </script>
 
@@ -36,6 +49,17 @@ onMounted(async () => {
     <!-- 좌우 그라데이션 (부드러운 사라짐 효과) -->
     <div class="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
     <div class="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+
+    <!-- 설정 버튼 (우측 상단 고정, z-index 높게) -->
+    <div class="absolute right-4 z-20">
+        <button @click="isSettingsOpen = true" class="flex items-center gap-1.5 px-3 py-1.5 bg-[#283593] text-white rounded-full shadow-md hover:bg-[#1a237e] hover:shadow-lg transition-all text-xs font-bold group">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>관심 지수 설정</span>
+        </button>
+    </div>
 
     <!-- 흐르는 컨텐츠 트랙 -->
     <div class="flex items-center animate-marquee whitespace-nowrap hover:pause">
@@ -69,6 +93,11 @@ onMounted(async () => {
       </div>
     </div>
   </div>
+  <MarketSettingsModal 
+    :is-open="isSettingsOpen" 
+    @close="isSettingsOpen = false"
+    @saved="fetchData" 
+  />
 </template>
 
 <style scoped>
@@ -78,7 +107,7 @@ onMounted(async () => {
 }
 
 .animate-marquee {
-  animation: marquee 40s linear infinite; /* 속도 조절: 숫자가 클수록 느림 */
+  animation: marquee 200s linear infinite; /* 속도 조절: 숫자가 클수록 느림 */
 }
 
 /* 마우스 올리면 멈춤 */
