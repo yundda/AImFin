@@ -59,9 +59,9 @@ def _assets_fix_to_bucket(entry: dict) -> dict:
     assets = entry.get("assets") or []
     w = float(entry.get("weight_pct", 0.0))
     if not assets:
-        return {"bucket": entry["bucket"], "weight_pct": round(w, 2), "assets": []}
+        return {"bucket": entry["bucket"], "weight_pct": int(round(w)), "assets": []}
     fixed = normalize_assets_within_bucket(w, assets)
-    return {"bucket": entry["bucket"], "weight_pct": round(w, 2), "assets": fixed}
+    return {"bucket": entry["bucket"], "weight_pct": int(round(w)), "assets": fixed}
 
 
 def _apply_must_buckets_min(rules: Dict[str, BucketRule], must_buckets: List[str], must_min: float = 3.0) -> None:

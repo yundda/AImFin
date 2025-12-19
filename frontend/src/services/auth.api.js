@@ -60,8 +60,8 @@ export const authApi = {
   },
 
   refreshToken: () => {
-    const refresh = localStorage.getItem(REFRESH_KEY);
-    return instance.post("/users/auth/refresh", { refresh });
+    // 쿠키 기반 리프레시 (refresh-cookie 엔드포인트 사용)
+    return instance.post("/users/auth/refresh-cookie", {});
   },
 
   // 프로필/설문/선호
@@ -123,7 +123,7 @@ instance.interceptors.response.use(
         }
         if (data.refresh) localStorage.setItem(REFRESH_KEY, data.refresh);
       }
-    } catch (_) {}
+    } catch (_) { }
     return res;
   },
   async (error) => {

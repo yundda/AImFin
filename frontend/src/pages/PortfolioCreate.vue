@@ -86,7 +86,7 @@ const generatePortfolio = async () => {
       <div class="bg-white rounded-3xl shadow-lg border border-gray-100 p-10 relative overflow-hidden">
         <!-- 배경 장식 -->
         <div class="absolute top-0 left-0 w-full h-2 bg-gray-100">
-          <div class="h-full bg-[#536dfe] w-full"></div> 
+          <div class="h-full bg-[#283593] w-full"></div> 
         </div>
 
         <div class="text-sm font-bold text-gray-400 mb-8 tracking-widest text-center">STEP 2. 포트폴리오 조건 설정</div>
@@ -99,20 +99,20 @@ const generatePortfolio = async () => {
               type="number" 
               v-model="amount" 
               placeholder="금액 입력 (예: 1000000)"
-              class="w-full p-4 pl-4 pr-12 text-xl font-bold border-2 border-gray-200 rounded-xl focus:border-[#536dfe] focus:outline-none transition-colors"
+              class="w-full p-4 pl-4 pr-12 text-xl font-bold border-2 border-gray-200 rounded-xl focus:border-[#283593] focus:outline-none transition-colors"
             />
             <span class="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500 font-bold">원</span>
           </div>
           
           <!-- ✅ 금액 추가 버튼 (클릭 시 addAmount 실행) -->
           <div class="flex gap-2 mt-3 overflow-x-auto pb-2 no-scrollbar">
-            <button @click="addAmount(1000000)" class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-[#536dfe] hover:text-white hover:border-[#536dfe] transition-colors whitespace-nowrap active:scale-95">
+            <button @click="addAmount(1000000)" class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-[#283593] hover:text-white hover:border-[#283593] transition-colors whitespace-nowrap active:scale-95">
               +100만
             </button>
-            <button @click="addAmount(5000000)" class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-[#536dfe] hover:text-white hover:border-[#536dfe] transition-colors whitespace-nowrap active:scale-95">
+            <button @click="addAmount(5000000)" class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-[#283593] hover:text-white hover:border-[#283593] transition-colors whitespace-nowrap active:scale-95">
               +500만
             </button>
-            <button @click="addAmount(10000000)" class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-[#536dfe] hover:text-white hover:border-[#536dfe] transition-colors whitespace-nowrap active:scale-95">
+            <button @click="addAmount(10000000)" class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-[#283593] hover:text-white hover:border-[#283593] transition-colors whitespace-nowrap active:scale-95">
               +1,000만
             </button>
             <button @click="amount = ''" class="px-4 py-2 bg-red-50 border border-red-100 rounded-lg text-sm font-medium text-red-500 hover:bg-red-100 transition-colors whitespace-nowrap active:scale-95">
@@ -129,8 +129,8 @@ const generatePortfolio = async () => {
               v-for="opt in horizonOptions" 
               :key="opt.id"
               @click="horizon = opt.id"
-              class="py-4 rounded-xl border-2 font-bold transition-all hover:border-[#536dfe] hover:text-[#536dfe] active:scale-95"
-              :class="horizon === opt.id ? 'border-[#536dfe] bg-blue-50 text-[#536dfe]' : 'border-gray-200 text-gray-500'"
+              class="py-4 rounded-xl border-2 font-bold transition-all hover:border-[#283593] hover:text-[#283593] active:scale-95"
+              :class="horizon === opt.id ? 'border-[#283593] bg-blue-50 text-[#283593]' : 'border-gray-200 text-gray-500'"
             >
               {{ opt.label }}
             </button>
@@ -146,7 +146,7 @@ const generatePortfolio = async () => {
               :key="opt.id"
               @click="toggleAsset(opt.id)"
               class="p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 h-28 hover:shadow-md active:scale-95"
-              :class="selectedAssets.includes(opt.id) ? 'border-[#536dfe] bg-blue-50 text-[#536dfe] shadow-sm' : 'border-gray-100 hover:border-gray-300 text-gray-500'"
+              :class="selectedAssets.includes(opt.id) ? 'border-[#283593] bg-blue-50 text-[#283593] shadow-sm' : 'border-gray-100 hover:border-gray-300 text-gray-500'"
             >
               <span class="text-3xl">{{ opt.icon }}</span>
               <span class="font-bold text-sm">{{ opt.label }}</span>
@@ -156,7 +156,7 @@ const generatePortfolio = async () => {
 
         <button 
           @click="generatePortfolio"
-          class="w-full py-5 bg-[#536dfe] text-white text-lg font-bold rounded-2xl shadow-lg hover:bg-[#4059e0] transition-transform hover:-translate-y-1 active:translate-y-0"
+          class="w-full py-5 bg-[#283593] text-white text-lg font-bold rounded-2xl shadow-lg hover:bg-[#1a237e] transition-transform hover:-translate-y-1 active:translate-y-0"
         >
           AI 포트폴리오 생성하기 
         </button>

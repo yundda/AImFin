@@ -71,7 +71,7 @@ const mainAssets = computed(() => {
 });
 
 const assetsInfo = [
-  { label: '국내주식', color: '#536dfe' },
+  { label: '국내주식', color: '#283593' },
   { label: '미국주식', color: '#3b82f6' },
   { label: '국내채권', color: '#10b981' },
   { label: '해외채권', color: '#34d399' },
@@ -93,6 +93,16 @@ const handleCreatePortfolio = async () => {
     router.push('/survey');
   }
 };
+const sortedAssets = computed(() => {
+  if (!mainAssets.value) return [];
+  return mainAssets.value
+    .map((val, i) => ({
+      value: val,
+      label: assetsInfo[i].label,
+      color: assetsInfo[i].color // Hex string in this file
+    }))
+    .sort((a, b) => b.value - a.value);
+});
 </script>
 
 <template>
@@ -105,7 +115,7 @@ const handleCreatePortfolio = async () => {
     <div v-else class="h-full flex flex-col">
       <div class="flex justify-between items-start mb-8">
         <div>
-          <h2 class="text-2xl font-bold text-[#536dfe] mb-1">내 포트폴리오</h2>
+          <h2 class="text-2xl font-bold text-[#283593] mb-1">내 포트폴리오</h2>
           <p v-if="portfolios.length > 0" class="text-sm text-gray-400">
             총 {{ portfolios.length }}개의 포트폴리오를 관리 중입니다.
           </p>
@@ -113,7 +123,7 @@ const handleCreatePortfolio = async () => {
         <button 
           v-if="portfolios.length > 0" 
           @click="isListView = true"
-          class="px-4 py-2 bg-[#536dfe] text-white text-xs font-bold rounded-full hover:bg-[#4059e0] transition-colors shadow-sm"
+          class="px-4 py-2 bg-[#283593] text-white text-xs font-bold rounded-full hover:bg-[#1a237e] transition-colors shadow-sm"
         >
           마이 포트폴리오 리스트 >
         </button>
@@ -121,14 +131,14 @@ const handleCreatePortfolio = async () => {
 
       <!-- 로딩 -->
       <div v-if="loading" class="flex-1 flex items-center justify-center">
-        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#536dfe]"></div>
+        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#283593]"></div>
       </div>
 
       <!-- 포트폴리오 없을 때 -->
       <div v-else-if="portfolios.length === 0" class="flex-1 flex flex-col items-center justify-center text-center">
-        <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-3xl mb-4 text-[#536dfe]">📈</div>
+        <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-3xl mb-4 text-[#283593]">📈</div>
         <p class="text-gray-400 text-sm mb-6">아직 생성된 포트폴리오가 없습니다.</p>
-        <button @click="handleCreatePortfolio" class="px-8 py-3 bg-[#536dfe] text-white font-bold rounded-xl hover:bg-[#4059e0] shadow-lg">
+        <button @click="handleCreatePortfolio" class="px-8 py-3 bg-[#283593] text-white font-bold rounded-xl hover:bg-[#1a237e] shadow-lg">
           포트폴리오 만들기
         </button>
       </div>
@@ -143,7 +153,7 @@ const handleCreatePortfolio = async () => {
           </div>
           <div class="bg-gray-50 rounded-xl p-3 sm:p-4">
             <div class="text-xs text-gray-500 mb-1 font-bold">투자 성향</div>
-            <div class="text-sm font-bold text-[#536dfe]">{{ mainPortfolioDetail.profile_label }}</div>
+            <div class="text-sm font-bold text-[#283593]">{{ mainPortfolioDetail.profile_label }}</div>
           </div>
           <div class="bg-gray-50 rounded-xl p-3 sm:p-4">
             <div class="text-xs text-gray-500 mb-1 font-bold">생성일</div>
@@ -156,9 +166,9 @@ const handleCreatePortfolio = async () => {
           <div>
             <h3 class="font-bold text-gray-900 mb-4">AI 추천 자산 배분</h3>
             <div class="space-y-1 text-sm text-gray-600">
-              <div v-for="(info, idx) in assetsInfo" :key="idx" class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full" :style="{ backgroundColor: info.color }"></span>
-                {{ info.label }} {{ mainAssets[idx] }}%
+              <div v-for="(item, idx) in sortedAssets" :key="idx" class="flex items-center gap-2" v-show="item.value > 0">
+                <span class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></span>
+                {{ item.label }} {{ item.value }}%
               </div>
             </div>
           </div>
@@ -167,7 +177,7 @@ const handleCreatePortfolio = async () => {
           <div class="relative w-28 h-28 sm:w-32 sm:h-32 group">
             <SimpleDonut :assets="mainAssets" :labels="assetsInfo.map(a=>a.label)" :colors="assetsInfo.map(a=>a.color)" size="w-28 h-28 sm:w-32 sm:h-32" :show-tooltip="true" />
             <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span class="text-sm font-bold text-[#536dfe]">{{ mainPortfolioDetail.profile_label }}</span>
+              <span class="text-sm font-bold text-[#283593]">{{ mainPortfolioDetail.profile_label }}</span>
             </div>
           </div>
         </div>

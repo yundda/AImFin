@@ -6,31 +6,29 @@ from assets.enums import AssetType
 from portfolios.services.portfolio_rules import BucketRule, RuleTable
 
 
-def _round2(x: float) -> float:
-    # 소수 둘째 자리 반올림
-    return float(f"{x:.2f}")
+def _round_int(x: float) -> int:
+    return int(round(x))
 
 
 def _largest_remainder_to_100(values: Dict[AssetType, float]) -> Dict[AssetType, float]:
     """
-    실수 합을 정확히 100.00으로 만드는 2-decimal 라운딩(최대잔여 방식).
+    실수 합을 정확히 100(정수)으로 만드는 라운딩(최대잔여 방식).
     """
-    # 1) 내림(2자리) + 잔여 계산
-    floored = {k: int(values[k] * 100) / 100.0 for k in values}
+    # 1) 내림(정수) + 잔여 계산
+    floored = {k: int(values[k]) for k in values}
     remainders: List[Tuple[AssetType, float]] = []
     for k, v in values.items():
         remainders.append((k, v - floored[k]))
 
-    # 2) 남은 센트 배분
-    diff = round(100.0 - sum(floored.values()), 2)
-    cents = int(round(diff * 100))
+    # 2) 남은 값(정수) 배분
+    diff = 100 - sum(floored.values())
     remainders.sort(key=lambda x: x[1], reverse=True)
     res = floored.copy()
     i = 0
-    while cents > 0 and i < len(remainders):
+    while diff > 0 and i < len(remainders):
         k, _ = remainders[i]
-        res[k] = round(res[k] + 0.01, 2)
-        cents -= 1
+        res[k] += 1
+        diff -= 1
         i = (i + 1) if (i + 1) < len(remainders) else 0  # tie 시 분산
     return res
 
@@ -53,12 +51,13 @@ def _waterfill_to_limits(
     base = mins.copy()  # 현재 할당
 
     total_min = sum(mins.values())
-    total_min = _round2(total_min)
-    if total_min > 100.0:
+    total_min = sum(mins.values())
+    total_min = _round_int(total_min)
+    if total_min > 100:
         # 정책이 과도하게 타이트한 경우: min을 균등비로 축소
         scale = 100.0 / total_min
         for b in base:
-            base[b] = _round2(base[b] * scale)
+            base[b] = _round_int(base[b] * scale)
         return _largest_remainder_to_100(base)
 
     # 제안치 클리핑
@@ -148,7 +147,7 @@ def reconcile_proposed_allocations(
     adjusted_map = _waterfill_to_limits(rules, blended_map)
     adjusted_map = _largest_remainder_to_100(adjusted_map)
 
-    final_allocs = [{"bucket": b, "weight_pct": _round2(adjusted_map[b])} for b in rules]
+    final_allocs = [{"bucket": b, "weight_pct": int(adjusted_map[b])} for b in rules]
     final_allocs.sort(key=lambda x: x["bucket"])  # 안정적 출력
 
     notes.append("normalized to 100.00 (target-blended)")
@@ -174,20 +173,20 @@ def normalize_assets_within_bucket(
         scale = bucket_weight / total
         raw = [float(a.get("weight_pct", 0.0)) * scale for a in assets]
 
-    # Largest Remainder(2-dec)로 합치기
-    floored = [int(x * 100) / 100.0 for x in raw]
-    cents_needed = int(round(bucket_weight * 100 - sum(int(x * 100) for x in floored)))
+    # Largest Remainder(정수)로 합치기
+    floored = [int(x) for x in raw]
+    needed = int(bucket_weight - sum(floored))
     rema = [(i, raw[i] - floored[i]) for i in range(len(raw))]
     rema.sort(key=lambda x: x[1], reverse=True)
 
     res = floored[:]
     idx = 0
-    while cents_needed > 0 and idx < len(res):
-        res[rema[idx][0]] = round(res[rema[idx][0]] + 0.01, 2)
-        cents_needed -= 1
+    while needed > 0 and idx < len(res):
+        res[rema[idx][0]] += 1
+        needed -= 1
         idx = (idx + 1) if (idx + 1) < len(res) else 0
 
     out = []
     for i, a in enumerate(assets):
-        out.append({"code": a["code"], "weight_pct": _round2(res[i])})
+        out.append({"code": a["code"], "weight_pct": int(res[i])})
     return out

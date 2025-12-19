@@ -66,3 +66,28 @@ def preference_status(request):
         {"exists": exists, "updated_at": updated_at},
         status=status.HTTP_200_OK,
     )
+from .models import UserMarketPreference
+from .serializers import UserMarketPreferenceSerializer
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def market_preference_get(request):
+    """
+    GET /api/users/preference/market
+    """
+    pref, _ = UserMarketPreference.objects.get_or_create(user=request.user)
+    return Response(UserMarketPreferenceSerializer(pref).data, status=status.HTTP_200_OK)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def market_preference_update(request):
+    """
+    POST /api/users/preference/market
+    body: { "indices": ["KS11", "AAPL", ...] }
+    """
+    pref, _ = UserMarketPreference.objects.get_or_create(user=request.user)
+    serializer = UserMarketPreferenceSerializer(pref, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

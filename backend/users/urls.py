@@ -35,4 +35,6 @@ urlpatterns = [
     # --- [추가] 선호설문 ---
     path("preference/save",    views_preference.preference_save, name="preference-save"),
     path("preference/current", views_preference.preference_current, name="preference-current"),
+    path("preference/market",  views_preference.market_preference_get, name="market-preference-get"),
+    path("preference/market/save", views_preference.market_preference_update, name="market-preference-save"),
 ]

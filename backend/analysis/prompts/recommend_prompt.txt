@@ -21,11 +21,11 @@ $eligible_assets_by_bucket
   "allocations": [
     {
       "bucket": "STOCKS_KR | STOCKS_GLB | BONDS_KR | BONDS_GLB | ALTERNATIVES | FUNDS | CASH",
-      "weight_pct": "<0.00~100.00, 소수점 2자리, 총합=100.00, min/max 준수>",
+      "weight_pct": "<0~100, 소수점 허용 안함, 총합=100, min/max 준수>",
       "assets": [
         {
           "code": "<편입 종목 코드(허용 목록 중 하나)>",
-          "weight_pct": "<해당 버킷 내 비중(소수점 2자리). assets 합계 = bucket weight_pct>"
+          "weight_pct": "<해당 버킷 내 비중(소수점 허용 안함). assets 합계 = bucket weight_pct>"
         }
       ]
       // 주의: 버킷명을 종목 코드로 쓰지 말 것.
@@ -46,10 +46,10 @@ $eligible_assets_by_bucket
 - 전문용어는 피하고 쉬운 표현으로, 문장은 짧게 작성합니다.
 
 [검증 체크리스트(절대 출력하지 말 것)]
-- allocations 총합=100.00, 각 버킷 min/max 준수
+- allocations 총합=100, 각 버킷 min/max 준수
 - must_buckets는 최소 min 이상 배정
 - assets 합=버킷 weight_pct (assets 제공 시)
-- 모든 숫자는 'allocations'와 $policy_summary에서만 인용(소수점 2자리)
+- 모든 숫자는 'allocations'와 $policy_summary에서만 인용(소수점 허용 안함)
 - $horizon_desc는 그대로 사용(임의 변형 금지)
 - 허용 목록 외 종목 코드 금지, 버킷명을 종목 코드로 사용 금지
 - JSON 외 불필요한 텍스트 출력 금지

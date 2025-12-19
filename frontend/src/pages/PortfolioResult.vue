@@ -55,48 +55,68 @@ onMounted(() => {
 // 화면 표시용 Computed Properties
 const profileLabel = computed(() => resultData.value?.profile_label || '분석 중');
 const profileColor = computed(() => {
-  const p = resultData.value?.profile;
-  if (p === "CONSERVATIVE") return "bg-green-500";
-  if (p === "MODERATE_CONSERVATIVE") return "bg-teal-500";
-  if (p === "BALANCED") return "bg-blue-500";
-  if (p === "GROWTH") return "bg-indigo-500";
-  if (p === "AGGRESSIVE") return "bg-purple-500";
-  return "bg-gray-500";
+  return "bg-[#283593]";
 });
 
+// Editable allocations state
+const editableAllocations = ref([]);
+
+// Update editable allocations when resultData changes
+const updateEditableAllocations = () => {
+  if (resultData.value && resultData.value.final_allocations) {
+    editableAllocations.value = JSON.parse(JSON.stringify(resultData.value.final_allocations));
+  }
+};
+
+// Watch for data load
+import { watch } from 'vue';
+watch(resultData, () => {
+  updateEditableAllocations();
+});
+
+
+const colorMap = {
+  'STOCKS_KR': '#283593', 
+  'STOCKS_GLB': '#3b82f6',
+  'BONDS_KR': '#10b981', 
+  'BONDS_GLB': '#34d399',
+  'ALTERNATIVES': '#f59e0b', 
+  'FUNDS': '#8b5cf6', 
+  'CASH': '#cbd5e1'
+};
+
+const getColor = (bucket) => colorMap[bucket] || '#cccccc';
+
 const pieStyle = computed(() => {
-  if (!resultData.value) return '';
-  // 7개 버킷에 대응하는 색상 매핑
-  const colorMap = {
-    'STOCKS_KR': '#536dfe', 
-    'STOCKS_GLB': '#3b82f6',
-    'BONDS_KR': '#10b981', 
-    'BONDS_GLB': '#34d399',
-    'ALTERNATIVES': '#f59e0b', 
-    'FUNDS': '#8b5cf6', 
-    'CASH': '#cbd5e1'
-  };
+  if (editableAllocations.value.length === 0) return '';
   
   let gradient = 'conic-gradient(';
   let currentPos = 0;
   
-  resultData.value.final_allocations.forEach((item) => {
+  // Use editableAllocations for chart
+  editableAllocations.value.forEach((item) => {
+    // Normalize to 100% for chart if total != 100 (optional visual stability)
+    // For now, just raw projection. If > 100, it wraps.
+    const weight = Number(item.weight_pct) || 0;
     const start = currentPos;
-    const end = currentPos + item.weight_pct;
-    const color = colorMap[item.bucket] || '#cccccc'; // Fallback color
+    const end = currentPos + weight;
+    const color = getColor(item.bucket);
     gradient += `${color} ${start}% ${end}%, `;
     currentPos = end;
   });
 
-  gradient = gradient.slice(0, -2) + ")"; // 마지막 쉼표 제거
+  gradient = gradient.slice(0, -2) + ")"; 
   return `background: ${gradient}`;
 });
+
+
 
 const formattedAmount = computed(() => amount.toLocaleString() + "원");
 
 const savePortfolio = async () => {
   if (!saveForm.value.name) return alert('이름을 입력해주세요.');
-  
+  if (!saveForm.value.name) return alert('이름을 입력해주세요.');
+
   try {
     const payload = {
       name: saveForm.value.name,
@@ -104,8 +124,8 @@ const savePortfolio = async () => {
       profile: resultData.value.profile,
       profile_label: resultData.value.profile_label,
       horizon_desc: resultData.value.horizon_desc,
-      must_buckets: mustBuckets, 
-      allocations: resultData.value.final_allocations,
+      must_buckets: mustBuckets,
+      allocations: editableAllocations.value,
       metrics: resultData.value.metrics,
       rationale: resultData.value.rationale,
       summary: resultData.value.summary,
@@ -145,7 +165,7 @@ const assetLabels = {
       <!-- 로딩 상태 -->
       <div v-if="loading" class="text-center py-20">
         <div
-          class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#536dfe] mx-auto mb-4"
+          class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#283593] mx-auto mb-4"
         ></div>
         <p class="text-gray-500 font-medium">
           AI가 최고의 포트폴리오를 구성하고 있습니다...
@@ -186,7 +206,7 @@ const assetLabels = {
         </h2>
         <p class="text-gray-500 mb-8">
           투자금
-          <span class="font-bold text-[#536dfe]">{{ formattedAmount }}</span
+          <span class="font-bold text-[#283593]">{{ formattedAmount }}</span
           >, 기간
           <span class="font-bold text-gray-700">{{
             resultData.horizon_desc
@@ -204,7 +224,7 @@ const assetLabels = {
         <div class="relative w-64 h-64 mx-auto rounded-full mb-8 shadow-lg scale-100 hover:scale-105 transition-transform duration-500" :style="pieStyle">
           <div class="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
             <span class="text-sm text-gray-400 font-medium">기대 수익률</span>
-            <span class="text-3xl font-bold text-[#536dfe]">+{{ expectedReturn }}%</span>
+            <span class="text-3xl font-bold text-[#283593]">+{{ expectedReturn }}%</span>
           </div>
         </div>
 
@@ -231,25 +251,36 @@ const assetLabels = {
 
         <!-- AI 코멘트  -->
         <div class="bg-blue-50 p-6 rounded-xl text-left mb-10">
-          <h4 class="font-bold text-[#536dfe] mb-2 flex items-center">
+          <h4 class="font-bold text-[#283593] mb-2 flex items-center">
             <span class="text-xl mr-2">💡</span> AI 투자 전략
           </h4>
           <p class="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{{ summary }}</p>
         </div>
 
-        <!-- 자산 배분 리스트 -->
-        <div
-          class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm mb-12 bg-gray-50 p-6 rounded-xl"
-        >
-          <div
-            v-for="item in resultData.final_allocations"
-            :key="item.bucket"
-            class="flex justify-between items-center bg-white px-3 py-2 rounded border border-gray-100"
-          >
-            <span class="font-medium text-gray-600">{{
-              assetLabels[item.bucket] || item.bucket
-            }}</span>
-            <span class="font-bold text-[#536dfe]">{{ item.weight_pct }}%</span>
+        <!-- 자산 배분 리스트 (Read-only) -->
+        <div class="mb-12 bg-gray-50 p-6 rounded-xl">
+          <div class="flex justify-between items-center mb-4 px-2">
+            <span class="text-sm font-bold text-gray-500">자산 구성 정보</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div
+              v-for="(item, index) in editableAllocations"
+              :key="item.bucket"
+              class="flex flex-col bg-white p-3 rounded border border-gray-100"
+            >
+              <div class="flex justify-between items-center mb-2">
+                <span class="font-medium text-gray-600 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: getColor(item.bucket) }"></span>
+                  {{ assetLabels[item.bucket] || item.bucket }}
+                </span>
+                <span class="font-bold text-gray-900">{{ item.weight_pct }}%</span>
+              </div>
+              <!-- 프로그레스 바 -->
+              <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full transition-all duration-300" :style="{ width: item.weight_pct + '%', backgroundColor: getColor(item.bucket) }"></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -262,7 +293,7 @@ const assetLabels = {
           </button>
           <button
             @click="showModal = true"
-            class="px-8 py-3 bg-[#536dfe] text-white rounded-xl font-bold hover:bg-[#4059e0] shadow-md"
+            class="px-8 py-3 bg-[#283593] text-white rounded-xl font-bold hover:bg-[#1a237e] shadow-md"
           >
             내 포트폴리오에 저장
           </button>
@@ -290,7 +321,7 @@ const assetLabels = {
           </button>
           <button
             @click="savePortfolio"
-            class="px-6 py-2.5 bg-[#536dfe] text-white rounded-lg font-bold hover:bg-[#4059e0]"
+            class="px-6 py-2.5 bg-[#283593] text-white rounded-lg font-bold hover:bg-[#1a237e]"
           >
             저장하기
           </button>

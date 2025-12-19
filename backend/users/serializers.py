@@ -81,3 +81,9 @@ class InvestmentPreferenceSerializer(serializers.ModelSerializer):
 
     def get_horizon_label(self, obj) -> str:
         return obj.get_horizon_code_display()
+from .models import UserMarketPreference
+
+class UserMarketPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserMarketPreference
+        fields = ("indices", "updated_at")

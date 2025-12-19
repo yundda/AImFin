@@ -16,7 +16,7 @@ const navLink = computed(() => {
 <template>
   <div class="min-h-screen bg-gray-50 relative overflow-hidden flex flex-col">
     <!-- 1. 대각선 파란 배경 (CSS clip-path 활용) -->
-    <div class="absolute top-0 left-0 w-full h-[60vh] bg-[#536dfe] z-0 custom-shape"></div>
+    <div class="absolute top-0 left-0 w-full h-[60vh] bg-[#283593] z-0 custom-shape"></div>
 
     <!-- 2. 헤더 (로고 & 네비게이션) -->
     <header class="relative z-10 w-full max-w-6xl mx-auto px-6 py-6 flex justify-between items-center text-white">
