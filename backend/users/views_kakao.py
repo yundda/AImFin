@@ -71,7 +71,7 @@ class KakaoCallbackView(APIView):
         access_q = quote_plus(tokens["access"])
         refresh_q = quote_plus(tokens["refresh"])
         
-        response = redirect(f"{FRONT}/oauth/callback#provider=kakao&access={access_q}&refresh={refresh_q}")
+        return redirect(f"{FRONT}/oauth/callback#provider=kakao&access={access_q}&refresh={refresh_q}")
         
         # 쿠키 세팅 추가
         is_secure = not settings.DEBUG

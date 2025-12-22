@@ -17,7 +17,7 @@ urlpatterns = [
     # 구글 OAuth (서버 주도 + PKCE)
     path("auth/google/start", views_google.GoogleStartView.as_view(), name="google-start"),
     path("auth/google/callback", views_google.GoogleCallbackView.as_view(), name="google-callback"),
-    path("auth/refresh-cookie", views.CookieRefreshView.as_view(), name="refresh-cookie"),
+    # path("auth/refresh-cookie", views.CookieRefreshView.as_view(), name="refresh-cookie"),
 
     # 카카오
     path("auth/kakao/start", views_kakao.KakaoStartView.as_view(), name="kakao-start"),
