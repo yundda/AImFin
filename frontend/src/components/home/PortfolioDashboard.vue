@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import SimpleDonut from '@/components/common/SimpleDonut.vue';
 
 const props = defineProps({
@@ -11,6 +12,7 @@ const props = defineProps({
 });
 
 const router = useRouter();
+const authStore = useAuthStore();
 
 // API 데이터를 UI 포맷으로 변환
 const portfolio = computed(() => {
@@ -62,6 +64,8 @@ const formattedAmount = computed(() => {
   return portfolio.value ? Number(portfolio.value.amount).toLocaleString() : '0';
 });
 
+const nickname = computed(() => authStore.user?.nickname || '회원');
+
 const assetsInfo = [
   { label: '국내주식', color: 'bg-[#283593]' },
   { label: '미국주식', color: 'bg-[#3b82f6]' },
@@ -72,8 +76,7 @@ const assetsInfo = [
   { label: '현금성자산', color: 'bg-[#cbd5e1]' },
 ];
 
-const goToList = () => { router.push('/user/mypage'); };
-const goToCompare = () => { router.push('/portfolio/compare'); };
+const goToCompare = () => { showCompareModal.value = true; };
 const modifyPortfolio = () => { router.push({ name: 'portfolio-create', query: { type: portfolio.value.typeCode } }); };
 
 const sortedAssets = computed(() => {
@@ -86,6 +89,36 @@ const sortedAssets = computed(() => {
     }))
     .sort((a, b) => b.value - a.value);
 });
+
+// Modal Logic
+const showCreateModal = ref(false);
+const showCompareModal = ref(false);
+
+const openCreateModal = () => {
+  showCreateModal.value = true;
+};
+
+const goToSurvey = () => {
+  router.push('/survey');
+};
+
+const goToCreatePortfolio = () => {
+  // 현재 포트폴리오의 성향 코드를 가져와서 전달
+  const type = portfolio.value?.typeCode || 'BALANCED';
+  router.push({ name: 'portfolio-create', query: { type } });
+};
+
+const startCompare = () => {
+  router.push('/portfolio/compare');
+};
+
+const startRebalance = () => {
+  // 사용자가 포트폴리오를 선택한 후 리밸런싱하도록 모드 전달
+  router.push({ 
+    path: '/portfolio/compare', 
+    query: { mode: 'rebalance_select' } 
+  });
+};
 </script>
 
 <template>
@@ -194,15 +227,98 @@ const sortedAssets = computed(() => {
             <div class="text-xs text-gray-400">다른 전략과 수익률을 비교해보세요</div>
           </div>
         </button>
-        <button @click="modifyPortfolio" class="flex items-center justify-center gap-3 py-4 rounded-xl bg-[#283593] hover:bg-[#1a237e] text-white transition-all shadow-md hover:shadow-lg group">
-          <span class="text-2xl group-hover:rotate-180 transition-transform duration-500">⚙️</span>
+        <button @click="openCreateModal" class="flex items-center justify-center gap-3 py-4 rounded-xl bg-[#283593] hover:bg-[#1a237e] text-white transition-all shadow-md hover:shadow-lg group">
+          <span class="text-2xl group-hover:rotate-180 transition-transform duration-500">✨</span>
           <div class="text-left">
-            <div class="font-bold">포트폴리오 수정하기</div>
-            <div class="text-xs text-blue-100">투자 금액 및 선호 상품 재설정</div>
+            <div class="font-bold">포트폴리오 생성하기</div>
+            <div class="text-xs text-blue-100">새로운 투자 목표로 다시 만들기</div>
           </div>
         </button>
       </div>
 
     </div>
+
+    <!-- Create Portfolio Modal -->
+    <div v-if="showCreateModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl relative animate-fade-in-up text-center">
+        <h3 class="text-xl font-bold mb-4 text-gray-900">투자 성향 재진단 안내</h3>
+        
+        <p class="text-gray-600 mb-8 leading-relaxed">
+          {{ nickname }}님의 투자 성향은 현재<br>
+          <span class="font-bold text-[#283593] text-lg">'{{ portfolio.typeLabel }}'</span> 입니다.<br><br>
+          <span class="text-sm text-gray-500">투자 성향 진단부터 다시 실시할까요?</span>
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+          <button 
+            @click="goToCreatePortfolio" 
+            class="flex-1 px-6 py-3 border border-gray-300 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-colors order-2 sm:order-1"
+          >
+            아니오
+          </button>
+          <button 
+            @click="goToSurvey" 
+            class="flex-1 px-6 py-3 bg-[#283593] text-white rounded-xl font-bold hover:bg-[#1a237e] shadow-lg transition-transform hover:-translate-y-1 order-1 sm:order-2"
+          >
+            예
+          </button>
+        </div>
+        
+        <button @click="showCreateModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Compare/Rebalance Selection Modal -->
+    <div v-if="showCompareModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl relative animate-fade-in-up text-center">
+        <h3 class="text-xl font-bold mb-4 text-gray-900">비교 모드 선택</h3>
+        <p class="text-gray-600 mb-8">어떤 작업을 진행하시겠습니까?</p>
+
+        <div class="flex flex-col gap-3">
+          <button 
+            @click="startCompare" 
+            class="w-full px-6 py-4 border border-gray-200 rounded-xl hover:border-[#283593] hover:bg-blue-50 transition-all flex items-center justify-between group"
+          >
+            <div class="text-left">
+              <div class="font-bold text-gray-900 group-hover:text-[#283593]">다른 포트폴리오와 비교</div>
+              <div class="text-xs text-gray-500">내 포트폴리오 목록 중 하나와 비교합니다</div>
+            </div>
+            <span class="text-2xl">🆚</span>
+          </button>
+
+          <button 
+            @click="startRebalance" 
+            class="w-full px-6 py-4 border border-gray-200 rounded-xl hover:border-[#283593] hover:bg-blue-50 transition-all flex items-center justify-between group"
+          >
+             <div class="text-left">
+              <div class="font-bold text-gray-900 group-hover:text-[#283593]">현재 구성 리밸런싱</div>
+              <div class="text-xs text-gray-500">현재 포트폴리오의 비중을 조정하여 분석합니다</div>
+            </div>
+            <span class="text-2xl">⚖️</span>
+          </button>
+        </div>
+        
+        <button @click="showCompareModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
   </div>
 </template>
+
+<style scoped>
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>

@@ -1,89 +1,40 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, computed, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { authApi } from '@/services/auth.api';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import SimpleDonut from '@/components/common/SimpleDonut.vue';
 import BaseInput from '@/components/common/BaseInput.vue';
-import { authApi } from '@/services/auth.api';
 
 const router = useRouter();
+const route = useRoute();
 
-// --- 상태 관리 ---
-const step = ref('select'); 
+const step = ref('select');
 const portfolios = ref([]);
-const selectedIds = ref([null, null]); 
-const showSelectModal = ref(false);
 const selectingIndex = ref(0);
+const showSelectModal = ref(false);
 
-// 분석 상태
-const showComparisonReport = ref(false); // 비교 분석 리포트 표시 여부
-const comparisonResult = ref(null); // API 결과 저장
+const selectedPortfolios = ref([null, null]);
+const selectedIds = ref([null, null]);
+
+const tempPortfolio = ref(null);
+const isRebalancing = ref(false);
+const rebalancedAssets = ref([0,0,0,0,0,0,0]);
+
+const comparisonResult = ref(null);
+const showComparisonReport = ref(false);
 const analysisLoading = ref(false);
 
-// 리밸런싱 관련
-const isRebalancing = ref(false);
-const tempPortfolio = ref(null);
-const rebalancedAssets = ref([]);
 const showSaveModal = ref(false);
 const saveForm = ref({ name: '', memo: '', isRepresentative: false });
 
-// 자산 정보 (7개 버킷으로 확장)
-// 순서: 국내주식, 미국주식, 국내채권, 해외채권, 대체투자, 펀드, 현금성자산
-const assetLabels = ['국내주식', '미국주식', '국내채권', '해외채권', '대체투자', '펀드', '현금성자산'];
-// Colors matching SimpleDonut default or customized here
-const assetColors = ['#283593', '#3b82f6', '#10b981', '#34d399', '#f59e0b', '#8b5cf6', '#cbd5e1'];
+const assetLabels = ['국내주식', '해외주식', '국내채권', '해외채권', '대체투자', '펀드', '현금성자산'];
+const assetColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'];
 const bucketKeys = ['STOCKS_KR', 'STOCKS_GLB', 'BONDS_KR', 'BONDS_GLB', 'ALTERNATIVES', 'FUNDS', 'CASH'];
-
-// 포트폴리오 로드
-const loadPortfolios = async () => {
-  try {
-    const res = await authApi.getPortfolioList();
-    const list = res.data.map(p => {
-      // Parse allocations if available from API
-      const assetMap = {
-        'STOCKS_KR': 0, 'STOCKS_GLB': 0,
-        'BONDS_KR': 0, 'BONDS_GLB': 0,
-        'ALTERNATIVES': 0, 'FUNDS': 0, 'CASH': 0
-      };
-
-      if (p.allocations && Array.isArray(p.allocations)) {
-        p.allocations.forEach(a => {
-           if (assetMap.hasOwnProperty(a.bucket)) {
-             assetMap[a.bucket] += (a.weight_pct || 0);
-           }
-        });
-      }
-      
-      const assetsArray = bucketKeys.map(key => Number(assetMap[key].toFixed(1)));
-
-      return {
-        ...p,
-        assets: assetsArray
-      };
-    });
-    
-    // 대표 포트폴리오 상단 정렬
-    list.sort((a, b) => {
-      if (a.is_representative && !b.is_representative) return -1;
-      if (!a.is_representative && b.is_representative) return 1;
-      return 0;
-    });
-
-    portfolios.value = list;
-  } catch (err) {
-    console.error("Failed to load portfolios:", err);
-  }
-};
-
-onMounted(loadPortfolios);
-
-// 선택된 포트폴리오 객체 저장 (API 상세 조회 결과)
-const selectedPortfolios = ref([null, null]);
 
 const leftP = computed(() => selectedPortfolios.value[0]);
 const rightP = computed(() => tempPortfolio.value || selectedPortfolios.value[1]);
 
-// 수치 계산 로직 (API metrics 사용)
 const getStats = (p) => {
   if (!p || !p.metrics) return { returnRate: 0, riskScore: 0 };
   return { 
@@ -95,34 +46,95 @@ const getStats = (p) => {
 const leftStats = computed(() => getStats(leftP.value));
 const rightStats = computed(() => getStats(rightP.value));
 
-// 기능 함수들
 const openSelectModal = (idx) => { selectingIndex.value = idx; showSelectModal.value = true; };
 
-const selectPortfolio = async (id) => {
+const loadPortfolios = async () => {
   try {
-    // 상세 조회하여 assets 정보 등을 채움
+    const res = await authApi.getPortfolioList();
+    const list = res.data.map(p => {
+      // API에서 받은 assets가 없을 경우를 대비해 0으로 초기화된 맵 생성
+      const assetMap = {
+        'STOCKS_KR': 0, 'STOCKS_GLB': 0, 'BONDS_KR': 0, 'BONDS_GLB': 0, 'ALTERNATIVES': 0, 'FUNDS': 0, 'CASH': 0
+      };
+      
+      // allocations 배열을 순회하며 assetMap 채우기
+      if (p.allocations && Array.isArray(p.allocations)) {
+        p.allocations.forEach(a => {
+           if (assetMap.hasOwnProperty(a.bucket)) assetMap[a.bucket] += (a.weight_pct || 0);
+        });
+      }
+      
+      // 정해진 순서대로 배열 변환
+      const assetsArray = bucketKeys.map(key => Number(assetMap[key].toFixed(1)));
+      
+      return { ...p, assets: assetsArray };
+    });
+    
+    // 대표 포트폴리오 우선 정렬
+    list.sort((a, b) => {
+      if (a.is_representative && !b.is_representative) return -1;
+      if (!a.is_representative && b.is_representative) return 1;
+      return 0;
+    });
+
+    portfolios.value = list;
+
+    // 모드 체크 (리스트 로드 후 실행해야 함)
+    checkRebalanceMode();
+
+  } catch (err) {
+    console.error("Failed to load portfolios:", err);
+    // 에러 발생 시에도 빈 배열로 초기화
+    portfolios.value = [];
+  }
+};
+
+const checkRebalanceMode = () => {
+  if (route.query.mode === 'rebalance_select') {
+    selectingIndex.value = 0;
+    showSelectModal.value = true;
+    // Reset state just in case
+    step.value = 'select';
+    isRebalancing.value = false;
+    tempPortfolio.value = null;
+    selectedPortfolios.value = [null, null];
+  }
+  else if (route.query.mode === 'rebalance' && route.query.sourceId) {
+     // Legacy direct logic support or cleanup
+      const sourceId = Number(route.query.sourceId);
+      const source = portfolios.value.find(p => p.id === sourceId);
+      if (source) {
+          selectPortfolio(source.id, 0).then(() => {
+              // Auto triggering handled in selectPortfolio now if we pass a flag or rely on query
+              // But strictly speaking, selectPortfolio checks 'rebalance_select' query.
+              // We might want to unify or redirect.
+              // For now, let's trust the 'rebalance_select' flow as primary.
+          });
+      }
+  }
+};
+
+watch(() => route.query.mode, () => {
+   if (portfolios.value.length > 0) checkRebalanceMode();
+});
+
+onMounted(loadPortfolios);
+
+// ... 
+
+const selectPortfolio = async (id, targetIndex = null) => {
+  try {
+    const idx = targetIndex !== null ? targetIndex : selectingIndex.value;
+
     const res = await authApi.getPortfolioDetail(id);
     const p = res.data;
     
-    // assets 배열로 변환 (7 buckets)
-    const assetMap = {
-      'STOCKS_KR': 0, 'STOCKS_GLB': 0,
-      'BONDS_KR': 0, 'BONDS_GLB': 0,
-      'ALTERNATIVES': 0, 'FUNDS': 0, 'CASH': 0
-    };
+    // ... (Asset parsing logic) ...
+    const assetMap = { 'STOCKS_KR': 0, 'STOCKS_GLB': 0, 'BONDS_KR': 0, 'BONDS_GLB': 0, 'ALTERNATIVES': 0, 'FUNDS': 0, 'CASH': 0 };
+    const bucketKeys = ['STOCKS_KR', 'STOCKS_GLB', 'BONDS_KR', 'BONDS_GLB', 'ALTERNATIVES', 'FUNDS', 'CASH'];
+    if (p.allocations) { p.allocations.forEach(a => { if (assetMap.hasOwnProperty(a.bucket)) assetMap[a.bucket] += (a.weight_pct || 0); }); }
+    const assetsArray = bucketKeys.map(key => Number(assetMap[key].toFixed(1)));
 
-    if (p.allocations) {
-      p.allocations.forEach(a => {
-        if (assetMap.hasOwnProperty(a.bucket)) {
-          assetMap[a.bucket] += (a.weight_pct || 0);
-        }
-      });
-    }
-    
-    // Map object to array in specific order
-    const assetsArray = bucketKeys.map(key => Number(assetMap[key].toFixed(1))); // 1 decimal place
-
-    // UI용 객체 생성
     const portObj = {
       ...p,
       typeLabel: p.profile_label,
@@ -130,13 +142,32 @@ const selectPortfolio = async (id) => {
       aiComment: p.rationale || p.summary || ''
     };
 
-    selectedPortfolios.value[selectingIndex.value] = portObj;
-    selectedIds.value[selectingIndex.value] = id;
+    selectedPortfolios.value[idx] = portObj;
+    selectedIds.value[idx] = id;
     
     showSelectModal.value = false;
     
-    if (selectingIndex.value === 1) {
-      tempPortfolio.value = null; // 리밸런싱 해제
+    // [NEW] Transition for Rebalance Select Mode
+    if (route.query.mode === 'rebalance_select' && idx === 0) {
+        // Init Right (Temp) as clone of Left
+        tempPortfolio.value = {
+            ...portObj,
+            id: 'temp-' + Date.now(),
+            name: portObj.name + ' (조정됨)',
+            isTemp: true,
+            assets: [...portObj.assets],
+        };
+        
+        // Init Rebalance State
+        isRebalancing.value = true;
+        rebalancedAssets.value = [...portObj.assets];
+        
+        step.value = 'analyze';
+        
+        // await runComparison();
+    }
+    else if (idx === 1) {
+      tempPortfolio.value = null; 
       showComparisonReport.value = false;
       comparisonResult.value = null;
     }
@@ -231,8 +262,8 @@ const analyzeRebalance = async () => {
         weight_pct: rebalancedAssets.value[idx]
     }));
     
-    // 원본 가져오기 (ID 참조용)
-    const original = selectedPortfolios.value[1]; 
+    // 원본 가져오기 (ID 참조용) - Compare모드면 Right(1)이 원본, Rebalance단독모드면 Left(0)이 원본
+    const original = selectedPortfolios.value[1] || selectedPortfolios.value[0]; 
     if (!original) throw new Error("원본 포트폴리오 데이터를 찾을 수 없습니다.");
 
     // 2. 백엔드 분석 요청
@@ -343,7 +374,7 @@ const getSortedAssets = (assets, limit = null) => {
         <div @click="openSelectModal(0)" class="w-full max-w-md min-h-[500px] rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#283593] hover:bg-blue-50/30 transition-all group relative bg-white overflow-hidden shadow-sm hover:shadow-md p-6">
           <div v-if="leftP" class="text-center w-full h-full flex flex-col items-center justify-between gap-6">
             <div class="w-full relative pt-2">
-              <h3 class="font-bold text-2xl text-gray-900 truncate px-2">{{ leftP.name }}</h3>
+              <h3 class="font-bold text-2xl text-gray-900 truncate px-2 pr-24">{{ leftP.name }}</h3>
               <p class="text-sm text-gray-400 mt-1">{{ leftP.created_at ? new Date(leftP.created_at).toLocaleDateString() : '날짜 없음' }}</p>
               <button @click.stop="openSelectModal(0)" class="absolute top-0 right-0 px-3 py-1.5 text-xs font-bold text-gray-400 hover:text-[#283593] hover:bg-blue-50/50 rounded-lg transition-colors flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
@@ -417,7 +448,7 @@ const getSortedAssets = (assets, limit = null) => {
         <div @click="openSelectModal(1)" class="w-full max-w-md min-h-[500px] rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#283593] hover:bg-blue-50/30 transition-all group relative bg-white overflow-hidden shadow-sm hover:shadow-md p-6">
           <div v-if="rightP" class="text-center w-full h-full flex flex-col items-center justify-between gap-6">
             <div class="w-full relative pt-2">
-              <h3 class="font-bold text-2xl text-gray-900 truncate px-2">{{ rightP.name }}</h3>
+              <h3 class="font-bold text-2xl text-gray-900 truncate px-2 pr-24">{{ rightP.name }}</h3>
               <p class="text-sm text-gray-400 mt-1">{{ rightP.created_at ? new Date(rightP.created_at).toLocaleDateString() : '날짜 없음' }}</p>
               <button @click.stop="openSelectModal(1)" class="absolute top-0 right-0 px-3 py-1.5 text-xs font-bold text-gray-400 hover:text-[#283593] hover:bg-blue-50/50 rounded-lg transition-colors flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
@@ -501,8 +532,8 @@ const getSortedAssets = (assets, limit = null) => {
           <!-- 왼쪽 포트폴리오 -->
           <div class="flex-1 bg-white p-8 rounded-3xl shadow-sm border border-gray-200">
             <div class="flex justify-between items-start mb-6">
-              <h3 class="font-bold text-xl">{{ leftP.name }}</h3>
-              <span class="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold">{{ leftP.typeLabel }}</span>
+              <h3 class="font-bold text-xl truncate pr-2 flex-1 min-w-0">{{ leftP.name }}</h3>
+              <span class="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold shrink-0">{{ leftP.typeLabel }}</span>
             </div>
             <div class="flex items-center gap-6 mb-6">
               <SimpleDonut :assets="leftP.assets" :labels="assetLabels" :colors="assetColors" size="w-24 h-24" />
@@ -541,13 +572,15 @@ const getSortedAssets = (assets, limit = null) => {
 
           <!-- 오른쪽 포트폴리오 (리밸런싱) -->
           <div class="flex-1 bg-white p-8 rounded-3xl shadow-sm border-2 transition-all relative" :class="isRebalancing ? 'border-[#283593] ring-2 ring-blue-50' : 'border-gray-200'">
-            <div class="flex justify-between items-start mb-6">
-              <h3 class="font-bold text-xl flex items-center gap-2">
-                {{ isRebalancing ? '조정 중...' : rightP.name }}
-                <span v-if="rightP.isTemp" class="text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded">미저장</span>
-              </h3>
-              <!-- 리밸런싱 토글 -->
-              <div class="flex items-center gap-2 cursor-pointer" @click="toggleRebalance">
+            <div class="flex justify-between items-center mb-6">
+              <div class="flex flex-col gap-1 flex-1 min-w-0 pr-2">
+                <h3 class="font-bold text-xl flex items-center gap-2 min-w-0">
+                  <span class="truncate block">{{ isRebalancing ? '조정 중...' : rightP.name }}</span>
+                  <span v-if="rightP.isTemp" class="text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded shrink-0">미저장</span>
+                </h3>
+              </div>
+              <!-- 리밸런싱 토글 (Shrink 안되게 고정) -->
+              <div class="flex items-center gap-2 cursor-pointer shrink-0" @click="toggleRebalance">
                 <span class="text-xs font-bold" :class="isRebalancing ? 'text-[#283593]' : 'text-gray-400'">리밸런싱</span>
                 <div class="w-10 h-5 bg-gray-200 rounded-full relative transition-colors" :class="{'bg-[#283593]': isRebalancing}"><div class="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform shadow-sm" :class="{'translate-x-5': isRebalancing}"></div></div>
               </div>
@@ -675,15 +708,15 @@ const getSortedAssets = (assets, limit = null) => {
 
     <!-- 모달들 (기존 동일) -->
     <div v-if="showSelectModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div class="bg-white w-full max-w-2xl rounded-2xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
+      <div class="bg-white w-full max-w-4xl rounded-2xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">포트폴리오 선택</h3><button @click="showSelectModal = false">✕</button></div>
         <div class="space-y-3">
           <button v-for="p in portfolios.filter(i => !i.isTemp && i.id !== selectedIds[1 - selectingIndex])" :key="p.id" @click="selectPortfolio(p.id)" class="w-full text-left p-4 rounded-xl border hover:border-[#283593] bg-gray-50 hover:bg-blue-50 transition-all flex justify-between items-center">
-            <div>
-              <div class="font-bold">{{ p.name }}</div>
+            <div class="flex-1 min-w-0 pr-4">
+              <div class="font-bold truncate text-lg">{{ p.name }}</div>
               <div v-if="p.typeLabel" class="text-xs text-gray-500">{{ p.typeLabel }}</div>
             </div>
-            <div class="flex flex-col items-end gap-1">
+            <div class="flex flex-col items-end gap-1 shrink-0">
               <span v-if="p.is_representative" class="inline-flex items-center gap-1 px-2 py-0.5 bg-[#283593] text-white text-[10px] font-bold rounded-full">
                 <span class="w-1.5 h-1.5 bg-white rounded-full"></span>
                 대표
@@ -711,7 +744,7 @@ const getSortedAssets = (assets, limit = null) => {
         </h3>
         <p class="text-gray-500 text-sm leading-relaxed">
           AI가 상세 리포트를 생성하고 있습니다.<br/>
-          최대 30초 정도 소요될 수 있으니 잠시만 기다려주세요 ☕️
+          최대 30초 정도 소요될 수 있으니 잠시만 기다려주세요
         </p>
       </div>
     </div>
