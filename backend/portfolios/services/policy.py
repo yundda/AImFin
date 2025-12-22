@@ -136,7 +136,7 @@ def reconcile_proposed_allocations(
 
     # --- NEW: 타깃 근접 유도를 위한 부드러운 블렌딩 ---
     # 타깃과 50:50로 섞어 과도한 극단값을 완화(시그니처 변경 없음)
-    BLEND = 0.5  # 0~1 (값이 클수록 GPT 제안 가중)
+    BLEND = 0.8  # 0~1 (값이 클수록 GPT 제안 가중)
     target_map: Dict[AssetType, float] = {b: rules[b].target for b in rules}
     blended_map: Dict[AssetType, float] = {
         b: BLEND * proposed_map[b] + (1 - BLEND) * target_map[b]

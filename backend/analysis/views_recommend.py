@@ -9,7 +9,6 @@ from analysis.services.recommend import recommend_portfolio
 
 class RecommendRequestSerializer(serializers.Serializer):
     amount_krw = serializers.IntegerField(min_value=1)
-    # 프론트는 코드로 전달(<1y / 1_3y / 3_5y / >=5y)
     horizon = serializers.ChoiceField(choices=["LT_1Y","Y_1_3","Y_3_5","GTE_5Y"])
     must_buckets = serializers.ListField(
         child=serializers.ChoiceField(

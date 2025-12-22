@@ -29,8 +29,7 @@ RECOMMEND_RESPONSE_SCHEMA = {
         },
         "rationale": {"type": "string"},
         "summary": {"type": "string"},
-        "risks": {"type": "string"}
     },
-    "required": ["allocations", "rationale", "summary", "risks"],
+    "required": ["allocations", "rationale", "summary"],
     "additionalProperties": False
 }
