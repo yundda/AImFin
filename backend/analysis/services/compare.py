@@ -12,19 +12,12 @@ from analysis.clients.gpt_client import complete_json
 from analysis.services.metrics import compute_portfolio_metrics
 from analysis.prompts.util import render_prompt
 from analysis.schemas.compare_response import COMPARE_RESPONSE_SCHEMA
+from analysis.services.common import localize_text,labels_table_lines
 
 from portfolios.services.portfolio_rules import get_universe_rules_for
 
 
 # ---------------- 유틸 ----------------
-
-def _read_compare_prompt_template() -> Template:
-    """
-    analysis/prompts/compare_prompt.txt 를 Template 로드 ($플레이스홀더 방식)
-    """
-    path = settings.BASE_DIR / "analysis" / "prompts" / "compare_prompt.txt"
-    return Template(path.read_text(encoding="utf-8"))
-
 def _fmt_alloc_lines(allocs: List[Dict[str, Any]]) -> str:
     """
     [{"bucket":"STOCKS_KR","weight_pct":18.57}, ...] -> "- STOCKS_KR: 18.57%\n- ..."
@@ -79,6 +72,8 @@ def _build_compare_prompt(
         "right_er_pct": f"{rm.get('expected_return_pct', 0.0):.2f}",
         "right_risk_score": f"{rm.get('risk_score', 0.0):.2f}",
         "policy_summary": policy_summary,
+        "bucket_labels_table" : labels_table_lines()
+
     }
     return render_prompt("compare_prompt.txt", ctx)
 
@@ -124,6 +119,10 @@ def evaluate_comparison(
             validate(instance=raw, schema=COMPARE_RESPONSE_SCHEMA)
         except Exception:
             pass
+    
+    raw["rationale"] = localize_text(raw.get("rationale", ""))
+    raw["summary"]   = localize_text(raw.get("summary", ""))
+    raw["risks"]     = localize_text(raw.get("risks", ""))
 
     return {
         "rationale": raw.get("rationale", ""),

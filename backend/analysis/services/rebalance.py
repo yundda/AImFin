@@ -9,6 +9,8 @@ from analysis.schemas.recommend_response import RECOMMEND_RESPONSE_SCHEMA
 from analysis.clients.gpt_client import complete_json
 from analysis.services.metrics import compute_portfolio_metrics
 from analysis.prompts.util import render_prompt
+from analysis.services.common import localize_text, labels_table_lines
+
 
 from portfolios.models import Portfolio
 from portfolios.services.portfolio_rules import get_universe_rules_for, BucketRule
@@ -73,7 +75,7 @@ def evaluate_rebalance(
     must_buckets = list(p.must_buckets or [])
 
     # 1) 정책/유니버스 수집
-    uni = get_universe_rules_for(user)  # {"rules": ..., "policy_summary": ..., "buckets":[{bucket, eligible_assets}, ...]}
+    uni = get_universe_rules_for(user,lock_unselected=True,whitelist=must_buckets)
     rules: Dict[str, BucketRule] = uni["rules"]
     _apply_must_buckets_min(rules, must_buckets, must_min=3.0)
 
@@ -96,6 +98,8 @@ def evaluate_rebalance(
             "must_buckets": must_buckets,
             "policy_summary": uni.get("policy_summary", ""),
             "eligible_assets_by_bucket": eligible_assets_by_bucket,
+            "bucket_labels_table" : labels_table_lines()
+
         },
     )
 
@@ -103,6 +107,10 @@ def evaluate_rebalance(
     raw = complete_json(prompt, schema=RECOMMEND_RESPONSE_SCHEMA)
     validate(instance=raw, schema=RECOMMEND_RESPONSE_SCHEMA)
 
+    raw["rationale"] = localize_text(raw.get("rationale", ""))
+    raw["summary"]   = localize_text(raw.get("summary", ""))
+    raw["risks"]     = localize_text(raw.get("risks", ""))
+    
     # 5) 정책 하에서 버킷 가중치 정규화
     proposed = raw.get("allocations", [])
     final_allocs, notes = reconcile_proposed_allocations(rules=rules, proposed_allocs=proposed)
