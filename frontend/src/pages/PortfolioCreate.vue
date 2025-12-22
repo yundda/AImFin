@@ -12,6 +12,7 @@ import { computed } from 'vue';
 
 const amount = ref(''); // 초기값은 빈 문자열 (입력 유도)
 const selectedAssets = ref([]);
+const allowAiAdditions = ref(false); // [NEW] AI 자동 확장 허용 여부
 
 const formattedAmount = computed({
   get: () => {
@@ -84,7 +85,8 @@ const generatePortfolio = async () => {
         type, 
         amount: amount.value,
         horizon: horizon.value, 
-        assets: JSON.stringify(selectedAssets.value) 
+        assets: JSON.stringify(selectedAssets.value),
+        allow_ai_additions: allowAiAdditions.value
       } 
     });
   } catch (error) {
@@ -167,6 +169,22 @@ const generatePortfolio = async () => {
               <span class="font-bold text-sm">{{ opt.label }}</span>
             </button>
           </div>
+        </div>
+
+        <!-- 4. AI 확장 옵션 -->
+        <div class="mb-10">
+            <div class="flex items-center gap-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                <input 
+                  type="checkbox" 
+                  id="ai-additions-create" 
+                  v-model="allowAiAdditions"
+                  class="w-5 h-5 text-[#283593] rounded border-gray-300 focus:ring-[#283593]"
+                >
+                <label for="ai-additions-create" class="flex-1 cursor-pointer select-none">
+                    <div class="font-bold text-gray-900">AI 상품 자동 배분 허용</div>
+                    <div class="text-xs text-gray-500">선택하신 상품 외에 AI가 추가로 상품을 추가하여 자동 배분합니다.</div>
+                </label>
+            </div>
         </div>
 
         <button 

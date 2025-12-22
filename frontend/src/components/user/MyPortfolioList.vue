@@ -181,7 +181,7 @@ const assetsInfo = [
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
       </button>
-      <h2 class="text-xl font-bold text-gray-900">마이포트폴리오 리스트</h2>
+      <h2 class="text-xl font-bold text-gray-900">마이 포트폴리오 리스트</h2>
     </div>
 
     <!-- 로딩 -->
@@ -213,11 +213,11 @@ const assetsInfo = [
 
           <!-- 제목 및 날짜 -->
           <div class="mb-3">
-            <h3 class="font-bold text-gray-900 text-lg leading-tight truncate pr-2">{{ p.name }}</h3>
-            <div class="flex items-center gap-2 mt-1">
-              <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-bold rounded">{{ p.profile_label || p.profile }}</span>
-              <span class="text-xs text-gray-400">{{ formatDate(p.created_at) }}</span>
-            </div>
+             <div class="flex items-center gap-2 mb-1 min-w-0 pr-2">
+                 <h3 class="font-bold text-gray-900 text-lg leading-tight truncate">{{ p.name }}</h3>
+                 <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-bold rounded shrink-0">{{ p.profile_label || p.profile }}</span>
+             </div>
+            <div class="text-xs text-gray-400">{{ formatDate(p.created_at) }}</div>
           </div>
 
           <!-- 메트릭 -->
@@ -278,42 +278,50 @@ const assetsInfo = [
           </div>
           <div v-else-if="detailData" class="space-y-8">
             
-            <!-- 1. 기본 정보 & 점수 -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
-              <div>
-                <div class="flex items-center gap-3 mb-2 min-w-0">
-                  <h2 class="text-2xl font-bold text-gray-900 truncate">{{ detailData.name }}</h2>
-                  <span class="px-2.5 py-1 bg-blue-50 text-[#283593] text-xs font-bold rounded-lg shrink-0">{{ detailData.profile_label }}</span>
+            <!-- 1. 기본 정보 (헤더) -->
+            <div class="bg-white px-2">
+                <div class="flex items-center gap-3 mb-1 min-w-0">
+                  <h2 class="text-3xl font-bold text-gray-900 truncate">{{ detailData.name }}</h2>
+                  <span class="px-3 py-1 bg-blue-50 text-[#283593] text-sm font-bold rounded-lg shrink-0">{{ detailData.profile_label }}</span>
                 </div>
                 <p class="text-gray-400 text-sm">{{ formatDate(detailData.created_at) }} 생성</p>
-                <div class="mt-4 flex items-baseline gap-2">
-                  <span class="text-sm font-bold text-gray-500">예상 수익률</span>
-                  <span class="text-2xl font-bold text-[#283593]">+{{ detailData.metrics?.expected_return_pct }}%</span>
-                </div>
-              </div>
-
-              <!-- 위험도 게이지 -->
-              <div class="bg-gray-50 rounded-xl p-4">
-                <div class="flex justify-between items-end mb-2 px-1">
-                  <span class="text-xs font-bold text-gray-500">위험도 레벨</span>
-                  <span class="text-sm font-bold" :class="(detailData.metrics?.risk_score || 0) > 60 ? 'text-red-500' : ((detailData.metrics?.risk_score || 0) > 40 ? 'text-yellow-500' : 'text-green-500')">
-                    {{ detailData.metrics?.risk_score }}점 ({{ (detailData.metrics?.risk_score || 0) > 60 ? '높음' : ((detailData.metrics?.risk_score || 0) > 40 ? '중간' : '낮음') }})
-                  </span>
-                </div>
-                <div class="h-3 w-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 rounded-full relative shadow-inner">
-                  <div 
-                    class="absolute top-1/2 -translate-y-1/2 w-1.5 h-6 bg-gray-800 border-2 border-white rounded-sm shadow-md transition-all duration-1000 ease-out"
-                    :style="{ left: (detailData.metrics?.risk_score || 0) + '%' }"
-                  ></div>
-                </div>
-                <div class="flex justify-between text-[10px] text-gray-400 mt-2 font-medium px-1">
-                  <span>안전</span>
-                  <span>위험</span>
-                </div>
-              </div>
             </div>
 
-            <!-- 2. 차트 & 자산배분 -->
+            <!-- Divider -->
+            <div class="w-full h-px bg-gray-200 my-2"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               <!-- 예상 수익률 -->
+               <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center items-start gap-1">
+                   <span class="text-xs font-bold text-gray-500">예상 수익률</span>
+                   <span class="text-2xl font-bold text-[#283593]">+{{ detailData.metrics?.expected_return_pct }}%</span>
+               </div>
+               
+               <!-- 위험도 -->
+               <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-end mb-2 px-1">
+                      <span class="text-xs font-bold text-gray-500">위험도</span>
+                      <span class="text-sm font-bold" :class="(detailData.metrics?.risk_score || 0) > 60 ? 'text-red-500' : ((detailData.metrics?.risk_score || 0) > 40 ? 'text-yellow-500' : 'text-green-500')">
+                        {{ detailData.metrics?.risk_score }}점 ({{ (detailData.metrics?.risk_score || 0) > 60 ? '높음' : ((detailData.metrics?.risk_score || 0) > 40 ? '중간' : '낮음') }})
+                      </span>
+                    </div>
+                    <div class="h-3 w-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 rounded-full relative shadow-inner">
+                      <div 
+                        class="absolute top-1/2 -translate-y-1/2 w-1.5 h-6 bg-gray-800 border-2 border-white rounded-sm shadow-md transition-all duration-1000 ease-out"
+                        :style="{ left: (detailData.metrics?.risk_score || 0) + '%' }"
+                      ></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-gray-400 mt-2 font-medium px-1">
+                      <span>안전</span>
+                      <span>위험</span>
+                    </div>
+               </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="w-full h-px bg-gray-200 my-2"></div>
+
+            <!-- 3. 차트 & 자산배분 -->
             <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-around gap-8">
               <div class="relative w-48 h-48 shrink-0">
                 <SimpleDonut :assets="detailAssets" :labels="assetsInfo.map(a=>a.label)" :colors="assetsInfo.map(a=>a.color)" size="w-48 h-48" :show-tooltip="false" />
@@ -322,22 +330,27 @@ const assetsInfo = [
                 </div>
               </div>
               
-              <div class="w-full max-w-sm space-y-3">
-                <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">자산 배분</div>
-                <div v-for="(item, idx) in sortedDetailAssets" :key="idx" class="flex justify-between items-center p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors" v-show="item.value > 0">
-                  <div class="flex items-center gap-3">
-                    <span class="w-3 h-3 rounded-full shadow-sm" :style="{ backgroundColor: item.color }"></span>
-                    <span class="text-gray-700 font-bold text-sm">{{ item.label }}</span>
-                  </div>
-                  <span class="font-bold text-gray-900">{{ item.value }}%</span>
+              <div class="w-full max-w-sm flex flex-col gap-3">
+                <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">자산 배분</div>
+                <div class="space-y-2">
+                    <div v-for="(item, idx) in sortedDetailAssets" :key="idx" class="flex justify-between items-center p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors" v-show="item.value > 0">
+                      <div class="flex items-center gap-3">
+                        <span class="w-3 h-3 rounded-full shadow-sm" :style="{ backgroundColor: item.color }"></span>
+                        <span class="text-gray-700 font-bold text-sm">{{ item.label }}</span>
+                      </div>
+                      <span class="font-bold text-gray-900">{{ item.value }}%</span>
+                    </div>
                 </div>
               </div>
             </div>
 
-            <!-- 3. AI 코멘트 -->
+            <!-- Divider -->
+            <div class="w-full h-px bg-gray-200 my-2"></div>
+
+            <!-- 4. AI 코멘트 -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h4 class="text-sm font-bold text-[#283593] mb-3 uppercase tracking-wider flex items-center gap-2">
-                <span class="text-lg">💡</span> AI 
+                <span class="text-lg">💡</span> AI 코멘트
               </h4>
               <div class="text-gray-700 text-sm leading-relaxed whitespace-pre-line p-4 bg-blue-50/30 rounded-xl border border-blue-50">
                  {{ detailData.rationale || detailData.summary || "분석 코멘트가 없습니다." }}
