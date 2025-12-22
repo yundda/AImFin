@@ -58,7 +58,7 @@ const submitNickname = async () => {
             id="nickname"
             v-model="nickname"
             type="text"
-            placeholder="멋진 닉네임을 입력하세요"
+            placeholder="닉네임을 입력해주세요"
             class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#536dfe] focus:border-transparent outline-none transition-all"
             :class="{ 'border-red-500': error }"
             :disabled="loading"

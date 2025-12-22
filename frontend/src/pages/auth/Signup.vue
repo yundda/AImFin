@@ -27,7 +27,7 @@ const handleSignup = async () => {
   }
 
   if (!form.value.agreeTerms) {
-    alert('이용약관에 동의해주세요.');
+    alert('개인정보 수집에 동의해주세요.');
     return;
   }
   
@@ -37,7 +37,7 @@ const handleSignup = async () => {
       password: form.value.password
     });
     alert('회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.');
-    router.push('/login');
+    router.push('/auth/login');
   } catch (error) {
     console.error('Signup failed:', error);
     // DRF returns object with field errors, e.g. { email: [...], non_field_errors: [...] }

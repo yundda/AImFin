@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from "vue-router";
 import Login from "@/pages/auth/Login.vue";
 import Signup from "@/pages/auth/Signup.vue";
 import Home from "@/pages/Home.vue";
-import News from "@/pages/News.vue";
 import MyPage from "@/pages/user/MyPage.vue";
 import Survey from "@/pages/Survey.vue";
 import SurveyResult from "@/pages/SurveyResult.vue";
@@ -20,12 +19,7 @@ const router = createRouter({
     { path: "/auth/signup", name: "signup", component: Signup },
 
     // ✅ 인증이 필요한 페이지들에 meta 추가
-    {
-      path: "/news",
-      name: "news",
-      component: News,
-      meta: { requiresAuth: true },
-    },
+    // ✅ 인증이 필요한 페이지들에 meta 추가
     {
       path: "/user/mypage",
       name: "mypage",
