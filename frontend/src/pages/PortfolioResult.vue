@@ -24,6 +24,7 @@ try {
 } catch (e) {
   console.error("JSON parse error:", e);
 }
+const allowAiAdditions = route.query.allow_ai_additions === 'true'; // 기본 false
 
 // API 호출
 const fetchRecommendation = async () => {
@@ -33,6 +34,7 @@ const fetchRecommendation = async () => {
       amount_krw: amount,
       horizon: horizon,
       must_buckets: mustBuckets,
+      allow_ai_additions: allowAiAdditions
     });
     console.log("Portfolio Response:", response.data); // 디버깅용 로그
     resultData.value = response.data;
@@ -150,7 +152,7 @@ const rationale = computed(() => resultData.value?.rationale || '');
 const summary = computed(() => resultData.value?.summary || ''); 
 const assetLabels = {
   STOCKS_KR: '국내주식',
-  STOCKS_GLB: '미국주식',
+  STOCKS_GLB: '해외주식',
   BONDS_KR: '국내채권',
   BONDS_GLB: '해외채권',
   ALTERNATIVES: '대체투자',
@@ -231,7 +233,7 @@ const assetLabels = {
         <!-- 위험도 게이지 (추가) -->
         <div class="max-w-xs mx-auto mb-12">
           <div class="flex justify-between items-end mb-2 px-1">
-            <span class="text-xs font-bold text-gray-400">위험도 진단</span>
+            <span class="text-xs font-bold text-gray-400">위험도</span>
             <span class="text-sm font-bold" :class="riskScore > 60 ? 'text-red-500' : (riskScore > 40 ? 'text-yellow-500' : 'text-green-500')">
               {{ riskScore }}점 ({{ riskScore > 60 ? '높음' : (riskScore > 40 ? '중간' : '낮음') }})
             </span>
@@ -243,9 +245,8 @@ const assetLabels = {
             ></div>
           </div>
           <div class="flex justify-between text-[10px] text-gray-400 mt-1.5 font-medium px-1">
-            <span>안전 (0)</span>
-            <span>중간 (50)</span>
-            <span>위험 (100)</span>
+            <span>안전</span>
+            <span>위험</span>
           </div>
         </div>
 
@@ -283,6 +284,7 @@ const assetLabels = {
             </div>
           </div>
         </div>
+
 
         <div class="flex gap-4 justify-center">
           <button

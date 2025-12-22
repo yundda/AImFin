@@ -206,7 +206,8 @@ const runComparison = async () => {
 
       payload.right = {
         type: 'allocations',
-        allocations: allocations
+        allocations: allocations,
+        label: rightP.value.name
       };
     } else {
       payload.right = { type: 'id', id: rightP.value.id };
@@ -544,7 +545,7 @@ const getSortedAssets = (assets, limit = null) => {
                   <!-- Unified Risk UI -->
                   <div>
                     <div class="flex justify-between items-end mb-1 px-1">
-                      <span class="text-xs font-bold text-gray-400">위험도 진단</span>
+                      <span class="text-xs font-bold text-gray-400">위험도</span>
                       <span class="text-sm font-bold" :class="leftStats.riskScore > 60 ? 'text-red-500' : (leftStats.riskScore > 40 ? 'text-yellow-500' : 'text-green-500')">
                         {{ leftStats.riskScore }}점 ({{ leftStats.riskScore > 60 ? '높음' : (leftStats.riskScore > 40 ? '중간' : '낮음') }})
                       </span>
@@ -596,7 +597,7 @@ const getSortedAssets = (assets, limit = null) => {
                   <!-- Unified Risk UI -->
                   <div>
                     <div class="flex justify-between items-end mb-1 px-1">
-                      <span class="text-xs font-bold text-gray-400">위험도 레벨</span>
+                      <span class="text-xs font-bold text-gray-400">위험도</span>
                       <span class="text-sm font-bold" :class="rightStats.riskScore > 60 ? 'text-red-500' : (rightStats.riskScore > 40 ? 'text-yellow-500' : 'text-green-500')">
                         {{ rightStats.riskScore }}점 ({{ rightStats.riskScore > 60 ? '높음' : (rightStats.riskScore > 40 ? '중간' : '낮음') }})
                       </span>
@@ -708,7 +709,7 @@ const getSortedAssets = (assets, limit = null) => {
 
     <!-- 모달들 (기존 동일) -->
     <div v-if="showSelectModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div class="bg-white w-full max-w-4xl rounded-2xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
+      <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">포트폴리오 선택</h3><button @click="showSelectModal = false">✕</button></div>
         <div class="space-y-3">
           <button v-for="p in portfolios.filter(i => !i.isTemp && i.id !== selectedIds[1 - selectingIndex])" :key="p.id" @click="selectPortfolio(p.id)" class="w-full text-left p-4 rounded-xl border hover:border-[#283593] bg-gray-50 hover:bg-blue-50 transition-all flex justify-between items-center">

@@ -124,7 +124,7 @@ const startRebalance = () => {
 <template>
   <div v-if="portfolio" class="w-full max-w-6xl mx-auto mt-8 px-4 md:px-0">
     
-    <div class="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden p-8 md:p-12 relative">
+    <div class="bg-white rounded-3xl shadow-lg border-2 border-gray-200 overflow-hidden p-8 md:p-12 relative">
       <div class="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50 pointer-events-none"></div>
 
       <!-- 상단 헤더 -->
@@ -174,7 +174,7 @@ const startRebalance = () => {
             <!-- 3. 위험도 게이지 -->
             <div class="bg-gray-50 rounded-2xl p-5 border border-gray-100 sm:col-span-2">
               <div class="flex justify-between items-end mb-2 px-1">
-                <span class="text-xs font-bold text-gray-400">위험도 진단</span>
+                <span class="text-xs font-bold text-gray-400">위험도</span>
                 <span class="text-sm font-bold" :class="stats.riskScore > 60 ? 'text-red-500' : (stats.riskScore > 40 ? 'text-yellow-500' : 'text-green-500')">
                   {{ stats.riskScore }}점 ({{ stats.riskScore > 60 ? '높음' : (stats.riskScore > 40 ? '중간' : '낮음') }})
                 </span>
@@ -220,10 +220,10 @@ const startRebalance = () => {
 
       <!-- 하단 버튼 -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-8 border-t border-gray-100">
-        <button @click="goToCompare" class="flex items-center justify-center gap-3 py-4 rounded-xl border-2 border-gray-100 hover:border-[#283593] hover:text-[#283593] hover:bg-blue-50 transition-all group">
+        <button @click="goToCompare" class="flex items-center justify-center gap-3 py-4 rounded-xl border-2 border-gray-300 hover:border-[#283593] hover:text-[#283593] hover:bg-blue-50 transition-all group">
           <span class="text-2xl group-hover:scale-110 transition-transform">🆚</span>
           <div class="text-left">
-            <div class="font-bold text-gray-900 group-hover:text-[#283593]">포트폴리오 비교하기</div>
+            <div class="font-bold text-gray-900 group-hover:text-[#283593]">포트폴리오 비교 / 리밸런싱 하기</div>
             <div class="text-xs text-gray-400">다른 전략과 수익률을 비교해보세요</div>
           </div>
         </button>
@@ -275,8 +275,8 @@ const startRebalance = () => {
     <!-- Compare/Rebalance Selection Modal -->
     <div v-if="showCompareModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
       <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl relative animate-fade-in-up text-center">
-        <h3 class="text-xl font-bold mb-4 text-gray-900">비교 모드 선택</h3>
-        <p class="text-gray-600 mb-8">어떤 작업을 진행하시겠습니까?</p>
+        <h3 class="text-xl font-bold mb-4 text-gray-900">어떤 작업을 진행할까요?</h3>
+     
 
         <div class="flex flex-col gap-3">
           <button 
