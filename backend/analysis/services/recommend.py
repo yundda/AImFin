@@ -10,23 +10,17 @@ from analysis.schemas.recommend_response import RECOMMEND_RESPONSE_SCHEMA
 from analysis.clients.gpt_client import complete_json
 from analysis.services.metrics import compute_portfolio_metrics
 from analysis.prompts.util import render_prompt
+from analysis.services.common import localize_text, labels_table_lines
+
+
 from portfolios.services.portfolio_rules import get_universe_rules_for, BucketRule
 from portfolios.services.policy import (
     reconcile_proposed_allocations,
     normalize_assets_within_bucket,
+    apply_horizon_override,
+    apply_selected_buckets_mode
 )
 from users.models import RiskProfileCode  # type hint/clarity
-
-
-def _read_prompt_template() -> Template:
-    """
-    프롬프트 파일을 읽어 Template 객체로 반환.
-    파일은 $profile, $profile_label, $amount_krw, $horizon_desc,
-    $must_buckets, $policy_summary, $eligible_assets_by_bucket 를 사용해야 한다.
-    """
-    path = settings.BASE_DIR / "analysis" / "prompts" / "recommend_prompt.txt"
-    text = path.read_text(encoding="utf-8")
-    return Template(text)
 
 
 def build_prompt(*, user, amount_krw: int, horizon_desc: str, must_buckets: list[str]) -> str:
@@ -44,6 +38,7 @@ def build_prompt(*, user, amount_krw: int, horizon_desc: str, must_buckets: list
         "must_buckets": must_buckets,
         "policy_summary": policy["policy_summary"],
         "eligible_assets_by_bucket": "\n".join(eligible_lines),
+        "bucket_labels_table" : labels_table_lines()
     }
     return render_prompt("recommend_prompt.txt", ctx)
 
@@ -96,6 +91,8 @@ def recommend_portfolio(
     amount_krw: int,
     horizon_desc: str,
     must_buckets: List[str],
+    allow_ai_additions: bool = False,         # True면 비선택 버킷 추가 허용
+
 ) -> dict:
     """
     - 사용자 최신 설문 스냅샷 + 선호 스냅샷으로 정책/유니버스 획득
@@ -116,11 +113,17 @@ def recommend_portfolio(
     raw = complete_json(prompt, schema=RECOMMEND_RESPONSE_SCHEMA)
     validate(instance=raw, schema=RECOMMEND_RESPONSE_SCHEMA)
 
+    raw["rationale"] = localize_text(raw.get("rationale", ""))
+    raw["summary"]   = localize_text(raw.get("summary", ""))
+    raw["risks"]     = localize_text(raw.get("risks", ""))
+    
     # 3) 정책/유니버스 + must_buckets min 보정
-    uni = get_universe_rules_for(user)     # {"rules": RuleTable, ...}
-    rules = uni["rules"]                   # Dict[str, BucketRule]
-    _apply_must_buckets_min(rules, must_buckets, must_min=3.0)
-
+    uni = get_universe_rules_for(user)
+    rules: Dict[str, BucketRule] = uni["rules"]
+    
+    # 기간(수명) 코드 오버라이드: 유효 코드면 적용, 아니면 무시됨
+    apply_horizon_override(rules, horizon_desc)
+    
     # 4) 정책 하에서 가중치 정규화
     proposed = raw.get("allocations", [])
     final_allocs, notes = reconcile_proposed_allocations(
@@ -138,7 +141,7 @@ def recommend_portfolio(
 
     # 6) 서버 계산식(metrics) → 기대수익/위험점수만 노출
     metrics_all = compute_portfolio_metrics(final_with_assets)
-    expected_return_pct = float(metrics_all.get("expected_return_pct", 0.0))
+    expected_return_pct = float(f"{float(metrics_all.get('expected_return_pct', 0.0)):.2f}")
     risk_score = _risk_score_from_metrics(metrics_all)
 
     # 7) 최종 응답
@@ -155,8 +158,8 @@ def recommend_portfolio(
         "rationale": raw.get("rationale", ""),
         "summary": raw.get("summary", ""),
         "risks": raw.get("risks", ""),
-        "metrics": {                             # 응답 축소본(2개만)
-            "expected_return_pct": float(f"{expected_return_pct:.2f}"),
+        "metrics": {
+            "expected_return_pct": expected_return_pct,
             "risk_score": float(f"{risk_score:.2f}"),
         },
         "generated_at": timezone.now().isoformat(),

@@ -1,42 +1,65 @@
 # analysis/views_recommend.py
-from rest_framework.views import APIView
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import serializers, status
 from rest_framework.response import Response
-from rest_framework import status, serializers
 
 from analysis.services.recommend import recommend_portfolio
-from analysis.serializers import RecommendInputSerializer
+
 
 class RecommendRequestSerializer(serializers.Serializer):
     amount_krw = serializers.IntegerField(min_value=1)
-    horizon = serializers.ChoiceField(choices=["<1y","1_3y","3_5y",">=5y"])
+    # 프론트는 코드로 전달(<1y / 1_3y / 3_5y / >=5y)
+    horizon = serializers.ChoiceField(choices=["LT_1Y","Y_1_3","Y_3_5","GTE_5Y"])
     must_buckets = serializers.ListField(
-        child=serializers.ChoiceField(choices=["STOCKS_KR","STOCKS_GLB","BONDS_KR","BONDS_GLB","FUNDS","ALTERNATIVES","CASH"]),
+        child=serializers.ChoiceField(
+            choices=[
+                "STOCKS_KR", "STOCKS_GLB",
+                "BONDS_KR", "BONDS_GLB",
+                "FUNDS", "ALTERNATIVES", "CASH",
+            ]
+        ),
         required=False,
         allow_empty=True,
     )
+    # 선택: 사용자가 고른 버킷은 반드시 포함 + 필요시 AI가 버킷 추가 허용
+    allow_ai_additions = serializers.BooleanField(required=False, default=False)
 
-    def to_human_horizon(self, code: str) -> str:
+    @staticmethod
+    def to_human_horizon(code: str) -> str:
+        # 서비스 prompt 쪽에서 읽기 좋은 표현으로 매핑
         return {
-            "<1y": "1년 이하",
-            "1_3y": "1~3년",
-            "3_5y": "3~5년",
-            ">=5y": "5년 이상",
+        "LT_1Y":  "1년 이하 (단기)",
+        "Y_1_3":  "1~3년 (중단기)",
+        "Y_3_5":  "3~5년 (중기)",
+        "GTE_5Y": "5년 이상 (장기)",
         }[code]
 
 
-class RecommendPortfolioView(APIView):
-    permission_classes = [IsAuthenticated]
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def recommend(request):
+    """
+    POST /api/analysis/recommend/portfolio
+    body:
+    {
+      "amount_krw": 20000000,
+      "horizon": "Y_3_5",
+      "must_buckets": ["STOCKS_KR","STOCKS_GLB","BONDS_KR"],
+      "allow_ai_additions": true
+    }
+    """
+    ser = RecommendRequestSerializer(data=request.data)
+    ser.is_valid(raise_exception=True)
+    v = ser.validated_data
 
-    def post(self, request):
-        ser = RecommendInputSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
-        v = ser.validated_data
+    horizon_desc = RecommendRequestSerializer.to_human_horizon(v["horizon"])
 
-        result = recommend_portfolio(
-            user=request.user,
-            amount_krw=v["amount_krw"],
-            horizon_desc=v["horizon_desc"],        # ← 정규화된 키 사용
-            must_buckets=v.get("must_buckets", []),
-        )
-        return Response(result, status=200)
+    result = recommend_portfolio(
+        user=request.user,
+        amount_krw=v["amount_krw"],
+        horizon_desc=horizon_desc,
+        must_buckets=v.get("must_buckets", []),
+        allow_ai_additions=v.get("allow_ai_additions", False),
+    )
+    return Response(result, status=status.HTTP_200_OK)

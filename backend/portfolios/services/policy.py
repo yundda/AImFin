@@ -190,3 +190,50 @@ def normalize_assets_within_bucket(
     for i, a in enumerate(assets):
         out.append({"code": a["code"], "weight_pct": int(res[i])})
     return out
+
+# --- 선택 버킷 보장/모드 적용 -----------------------------------------------
+def apply_selected_buckets_mode(
+    rules: RuleTable,
+    selected_buckets: list[str] | None,
+    *,
+    allow_ai_additions: bool = False,
+    must_min_pct: float = 3.0,
+) -> None:
+    """
+    - selected_buckets: 사용자가 고른 버킷 문자열 목록
+    - allow_ai_additions=False: 비선택 버킷은 max=0으로 봉인
+    - allow_ai_additions=True: 비선택 버킷 열어두되, 선택 버킷은 0% 불가(min>=must_min_pct)
+    """
+    if not selected_buckets:
+        return
+
+    selected: set[AssetType] = set()
+    for s in selected_buckets:
+        try:
+            selected.add(AssetType(s))
+        except Exception:
+            pass
+
+    for b, r in rules.items():
+        if b in selected:
+            if r.min < must_min_pct:
+                r.min = must_min_pct
+            if r.target < r.min:
+                r.target = r.min
+        else:
+            if not allow_ai_additions:
+                r.min = 0.0
+                r.max = 0.0
+                r.target = 0.0
+
+
+# --- 외부에서 기간 오버라이드할 때 사용 --------------------------------------
+def apply_horizon_override(rules: RuleTable, horizon_code: str | None) -> None:
+    """
+    get_universe_rules_for()로 받은 rules에 기간 코드를 외부에서 강제로 반영.
+    """
+    from .portfolio_rules import _apply_horizon_adjust, _ensure_min_le_max  # 내부 유틸 재사용
+    if not horizon_code:
+        return
+    _apply_horizon_adjust(rules, horizon_code)  # type: ignore[arg-type]
+    _ensure_min_le_max(rules)

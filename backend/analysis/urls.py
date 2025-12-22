@@ -9,7 +9,7 @@ urlpatterns = [
     path("analyze", views.single_analyze, name="analysis.analyze"),  # POST /api/analysis/analyze
     path("survey_analyze", views.survey_analyze, name="analysis.survey_analyze"),  # POST
 
-    path("recommend/portfolio", views_recommend.RecommendPortfolioView.as_view(), name="recommend-portfolio"),
+    path("recommend/portfolio", views_recommend.recommend, name="recommend-portfolio"),
     path("rebalance/portfolio/<int:portfolio_id>", views_rebalance.rebalance, name="analysis.rebalance"),
     path("compare/portfolio", views_compare.compare_portfolio, name="analysis.compare.portfolio"),
 ]

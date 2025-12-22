@@ -33,3 +33,19 @@ def save_survey_and_update_snapshot(user, survey_payload: dict) -> SurveyResult:
         defaults={"latest_result": sr}
     )
     return sr
+
+
+def score_to_profile(total_score: float) -> RiskProfileCode:
+    """
+    0~100 점수 가정. 경계는 필요에 맞게 미세조정 가능.
+    """
+    s = float(total_score)
+    if s < 35:
+        return RiskProfileCode.CONSERVATIVE
+    if s < 50:
+        return RiskProfileCode.MODERATE_CONSERVATIVE
+    if s < 65:
+        return RiskProfileCode.BALANCED
+    if s < 82:
+        return RiskProfileCode.GROWTH
+    return RiskProfileCode.AGGRESSIVE  # ← 상단 경계 확실히 연다

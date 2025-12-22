@@ -5,23 +5,25 @@ from typing import Dict, List
 from assets.enums import AssetType
 
 # ---- 가정(연율, %) ----
-RISK_FREE_PCT = 1.5  # 리스크프리(연)
-MU_PCT: Dict[str, float] = {  # 기대수익률(연, %)
-    AssetType.STOCKS_KR:    7.0,
-    AssetType.STOCKS_GLB:   7.5,
-    AssetType.BONDS_KR:     3.0,
-    AssetType.BONDS_GLB:    3.5,
-    AssetType.ALTERNATIVES: 5.0,
-    AssetType.FUNDS:        4.5,
-    AssetType.CASH:         1.5,
+RISK_FREE_PCT = 2.0  # (기존 1.5 → 2.0)
+
+MU_PCT = {  # 기대수익률(연, %)
+    AssetType.STOCKS_KR:    8.5,   # (7.0 → 8.5)
+    AssetType.STOCKS_GLB:   9.0,   # (7.5 → 9.0)
+    AssetType.BONDS_KR:     2.3,   # (3.0 → 2.3)
+    AssetType.BONDS_GLB:    2.8,   # (3.5 → 2.8)
+    AssetType.ALTERNATIVES: 6.0,   # (5.0 → 6.0)
+    AssetType.FUNDS:        4.8,   # (4.5 → 4.8)
+    AssetType.CASH:         1.6,   # (1.5 → 1.6)
 }
-SIGMA_PCT: Dict[str, float] = {  # 변동성(연, %)
-    AssetType.STOCKS_KR:    20.0,
-    AssetType.STOCKS_GLB:   18.0,
-    AssetType.BONDS_KR:      5.0,
-    AssetType.BONDS_GLB:     6.0,
-    AssetType.ALTERNATIVES: 12.0,
-    AssetType.FUNDS:         8.0,
+
+SIGMA_PCT = {  # 변동성(연, %)
+    AssetType.STOCKS_KR:    22.0,  # (20 → 22)
+    AssetType.STOCKS_GLB:   19.0,  # (18 → 19)
+    AssetType.BONDS_KR:      6.0,  # (5 → 6)
+    AssetType.BONDS_GLB:     7.0,  # (6 → 7)
+    AssetType.ALTERNATIVES: 14.0,  # (12 → 14)
+    AssetType.FUNDS:         9.0,  # (8 → 9)
     AssetType.CASH:          0.5,
 }
 
