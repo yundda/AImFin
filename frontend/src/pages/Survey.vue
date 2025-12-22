@@ -25,7 +25,7 @@ const questions = [
   // 2. History (Period & Freq) -> Maps to two fields
   {
     id: 2, category: '투자 기간',
-    question: '지금까지의 투자 기간과 빈도는?',
+    question: '지금까지의 투자 기간과 빈도는 어떻게 되시나요?',
     options: [
       { label: '1년 미만 / 거의 없음', value: { period: '<1y', freq: 'none' } },
       { label: '1~3년 / 연 1~3회', value: { period: '1-3y', freq: 'year_1_3' } },
@@ -33,34 +33,34 @@ const questions = [
     ]
   },
   // 3. Income
-  { id: 3, field: 'income', category: '연 소득', question: '연 소득 수준은?', options: [
+  { id: 3, field: 'income', category: '연 소득', question: '연 소득 수준은 어떻게 되시나요?', options: [
     { label: '3천만 미만', value: '<30m' },
     { label: '3천~7천', value: '30_70m' },
     { label: '7천~1억', value: '70_100m' },
     { label: '1억 이상', value: '>=100m' }
   ]},
   // 4. Wealth
-  { id: 4, field: 'wealth', category: '자산 규모', question: '총 금융자산 규모는?', options: [
+  { id: 4, field: 'wealth', category: '자산 규모', question: '총 금융자산 규모는 어떻게 되시나요?', options: [
     { label: '5천만 미만', value: '<50m' },
     { label: '5천~1억', value: '50_100m' },
     { label: '1억~5억', value: '100m_500m' },
     { label: '5억 이상', value: '>=500m' }
   ]},
   // 5. Debt Ratio (Note: Values inferred from backend logic)
-  { id: 5, field: 'debt_ratio', category: '부채 비중', question: '자산 대비 부채 비중은?', options: [
+  { id: 5, field: 'debt_ratio', category: '부채 비중', question: '자산 대비 부채 비중은 어떻게 되시나요?', options: [
     { label: '상당히 있음', value: 'gte_50pct' }, // Score 0
     { label: '소폭 있음', value: 'lt_50pct' },     // Score 2
     { label: '없음', value: 'none' }               // Score 3
   ]},
   // 6. Invest Share
-  { id: 6, field: 'invest_share', category: '투자 비중', question: '전체 자산 중 투자금 비중은?', options: [
+  { id: 6, field: 'invest_share', category: '투자 비중', question: '전체 자산 중 투자금 비중은 어떻게 되시나요?', options: [
     { label: '50% 이상', value: '>=50pct' },
     { label: '30~50%', value: '30_50pct' },
     { label: '10~30%', value: '10_30pct' },
     { label: '10% 미만', value: '<10pct' }
   ]},
   // 7. Purpose
-  { id: 7, field: 'purpose', category: '투자 목적', question: '이번 투자의 주된 목적은?', options: [
+  { id: 7, field: 'purpose', category: '투자 목적', question: '이번 투자의 주된 목적은 무엇인가요?', options: [
     { label: '자산 보존', value: 'capital_preservation' },
     { label: '예금+α 수익', value: 'above_deposit' },
     { label: '자산 증식', value: 'market_return' },
@@ -68,35 +68,35 @@ const questions = [
     { label: '단기 고수익', value: 'trading_high_risk' }
   ]},
   // 8. Target Return
-  { id: 8, field: 'target_return', category: '목표 수익률', question: '기대하는 연 수익률은?', options: [
+  { id: 8, field: 'target_return', category: '목표 수익률', question: '기대하는 연 수익률은 어떻게 되시나요?', options: [
     { label: '3% 이하', value: '<=3' },
     { label: '3~5%', value: '3_5' },
     { label: '5~10%', value: '5_10' },
     { label: '10% 이상', value: '>=10' }
   ]},
   // 9. Loss Response
-  { id: 9, field: 'loss_response', category: '손실 대응', question: '-10% 손실 시 대응은?', options: [
+  { id: 9, field: 'loss_response', category: '손실 대응', question: '-10% 손실 시 어떻게 대응하실 건가요?', options: [
     { label: '전량 매도', value: 'sell_all' },
     { label: '일부 매도', value: 'sell_partial' },
     { label: '보유', value: 'hold' },
     { label: '추가 매수', value: 'buy_more' }
   ]},
   // 10. Volatility Feel
-  { id: 10, field: 'volatility_feel', category: '변동성', question: '변동성이 큰 상품에 대한 생각은?', options: [
+  { id: 10, field: 'volatility_feel', category: '변동성', question: '변동성이 큰 상품에 대한 생각은 어떻게 되시나요?', options: [
     { label: '매우 불안', value: 'very_anxious' },
     { label: '다소 불안', value: 'somewhat_anxious' },
     { label: '괜찮음', value: 'ok' },
     { label: '기회라고 생각', value: 'opportunity' }
   ]},
   // 11. Loss for Return
-  { id: 11, field: 'loss_for_return', category: '위험 선호', question: '원금 손실 감수하고 고수익 기대?', options: [
+  { id: 11, field: 'loss_for_return', category: '위험 선호', question: '원금 손실 감수하고 고수익을 기대하는 편이신가요?', options: [
     { label: '전혀 아님', value: 'never' },
     { label: '아님', value: 'no' },
     { label: '그렇다', value: 'yes' },
     { label: '매우 그렇다', value: 'strong_yes' }
   ]},
   // 12. Horizon
-  { id: 12, field: 'horizon', category: '투자 기간', question: '투자 가능한 기간은?', options: [
+  { id: 12, field: 'horizon', category: '투자 기간', question: '투자 가능한 기간은 얼마나 되시나요?', options: [
     { label: '1년 미만', value: '<1y' },
     { label: '1~3년', value: '1_3y' },
     { label: '3~5년', value: '3_5y' },

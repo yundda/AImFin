@@ -28,7 +28,7 @@ const formattedAmount = computed({
 
 const assetOptions = [
   { id: 'STOCKS_KR', label: '국내주식', icon: '🇰🇷' },
-  { id: 'STOCKS_GLB', label: '미국주식', icon: '🇺🇸' },
+  { id: 'STOCKS_GLB', label: '해외주식', icon: '🇺🇸' },
   { id: 'BONDS_KR', label: '국내채권', icon: '📜' },
   { id: 'BONDS_GLB', label: '해외채권', icon: '🌐' },
   { id: 'ALTERNATIVES', label: '대체투자', icon: '💎' },

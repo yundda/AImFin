@@ -489,7 +489,7 @@ const getSortedAssets = (assets, limit = null) => {
 
       <div v-if="step === 'select'" class="text-center mt-12">
         <button @click="startAnalysis" class="px-12 py-4 bg-[#283593] text-white text-lg font-bold rounded-2xl shadow-lg hover:bg-[#1a237e] disabled:bg-gray-300 disabled:cursor-not-allowed transition-all" :disabled="!leftP || !rightP">
-          분석하러 가기 🚀
+          분석하기
         </button>
       </div>
 
@@ -606,7 +606,7 @@ const getSortedAssets = (assets, limit = null) => {
                   <!-- Controls -->
                   <div class="flex items-center gap-3">
                      <!-- Slider -->
-                     <input type="range" v-model.number="rebalancedAssets[i]" min="0" max="100" step="1" class="flex-1 h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer" :style="{'accent-color': assetColors[i]}" />
+                     <input type="range" v-model.number="rebalancedAssets[i]" min="0" max="100" step="1" class="flex-1 h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer" :style="{'accent-color': assetColors[i]}" />
                      
                      <!-- Input Group -->
                      <div class="flex items-center bg-gray-50 rounded-lg border border-gray-200 p-0.5 shrink-0">

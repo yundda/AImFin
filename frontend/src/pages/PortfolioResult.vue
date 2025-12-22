@@ -254,7 +254,7 @@ const assetLabels = {
           <h4 class="font-bold text-[#283593] mb-2 flex items-center">
             <span class="text-xl mr-2">💡</span> AI 투자 전략
           </h4>
-          <p class="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{{ summary }}</p>
+          <p class="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{{ rationale }}</p>
         </div>
 
         <!-- 자산 배분 리스트 (Read-only) -->

@@ -21,10 +21,7 @@ const handleLogout = async() => {
       
       <!-- 우측 메뉴 -->
       <div class="flex items-center gap-6">
-        <!-- 2. 뉴스: 클릭 시 '/news'로 이동 -->
-        <router-link to="/news" class="text-sm font-medium text-gray-600 hover:text-black transition-colors">
-          뉴스
-        </router-link>
+
         
         <!-- 3. 마이페이지: 클릭 시 '/user/mypage'로 이동 -->
         <router-link to="/user/mypage" class="text-sm font-medium text-gray-600 hover:text-black transition-colors">
