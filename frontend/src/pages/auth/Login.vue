@@ -23,7 +23,13 @@ const handleLogin = async () => {
 
   try {
     await authStore.login(form.value.username, form.value.password);
-    router.push('/'); 
+    
+    // 닉네임 유무 확인 후 리다이렉트
+    if (!authStore.user?.nickname) {
+      router.push('/onboarding/nickname');
+    } else {
+      router.push('/');
+    } 
   } catch (error) {
     console.error('Login failed:', error);
     alert('로그인 실패: ' + (error.response?.data?.detail || '아이디 또는 비밀번호를 확인해주세요.'));
@@ -41,14 +47,14 @@ const handleLogin = async () => {
     <form @submit.prevent="handleLogin">
       <BaseInput
         id="login-id"
-        label="ID"
+        label="이메일"
         v-model="form.username"
         placeholder="janedoe@gmail.com"
       />
 
       <BaseInput
         id="login-password"
-        label="PASSWORD"
+        label="비밀번호"
         type="password"
         v-model="form.password"
         

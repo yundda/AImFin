@@ -16,6 +16,16 @@ const form = ref({
 });
 
 const handleSignup = async () => {
+  // 비밀번호 유효성 검사: 8자 이상, 영문자 및 숫자 포함
+  const isValidPassword = form.value.password.length >= 8 && 
+                          /[A-Za-z]/.test(form.value.password) && 
+                          /\d/.test(form.value.password);
+
+  if (!isValidPassword) {
+    alert('비밀번호는 영문자와 숫자를 모두 포함하여 8자 이상이어야 합니다.');
+    return;
+  }
+
   if (!form.value.agreeTerms) {
     alert('이용약관에 동의해주세요.');
     return;
@@ -59,14 +69,14 @@ const handleSignup = async () => {
     <form @submit.prevent="handleSignup">
       <BaseInput
         id="signup-email"
-        label="EMAIL ADDRESS"
+        label="이메일"
         v-model="form.email"
         placeholder="johndoe@example.com"
       />
 
       <BaseInput
         id="signup-password"
-        label="PASSWORD"
+        label="비밀번호"
         type="password"
         v-model="form.password"
         placeholder="**********"
@@ -75,7 +85,7 @@ const handleSignup = async () => {
       <div class="mb-8 text-xs">
         <label class="flex items-center text-gray-500 cursor-pointer">
           <input type="checkbox" v-model="form.agreeTerms" class="mr-2 rounded text-[#536dfe] focus:ring-[#536dfe]" />
-          <span class="border-b border-gray-400">AImFIN의 이용약관 및 개인정보 수집에 동의합니다.</span>
+          <span class="border-b border-gray-400">AImFIN의 개인정보 수집에 동의합니다.</span>
         </label>
       </div>
 

@@ -7,9 +7,24 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue';
 const route = useRoute();
 const router = useRouter();
 const type = route.query.type; 
+// ✅ 금액 포맷팅을 위한 Computed Property
+import { computed } from 'vue';
 
 const amount = ref(''); // 초기값은 빈 문자열 (입력 유도)
 const selectedAssets = ref([]);
+
+const formattedAmount = computed({
+  get: () => {
+    if (!amount.value) return '';
+    return Number(amount.value).toLocaleString();
+  },
+  set: (val) => {
+    // 콤마 제거 후 숫자만 남김
+    const num = val.replace(/,/g, '');
+    if (isNaN(num)) return;
+    amount.value = num;
+  }
+});
 
 const assetOptions = [
   { id: 'STOCKS_KR', label: '국내주식', icon: '🇰🇷' },
@@ -96,9 +111,9 @@ const generatePortfolio = async () => {
           <label class="block text-lg font-bold text-gray-900 mb-4"> 투자 가능 금액은 얼마인가요?</label>
           <div class="relative">
             <input 
-              type="number" 
-              v-model="amount" 
-              placeholder="금액 입력 (예: 1000000)"
+              type="text" 
+              v-model="formattedAmount" 
+              placeholder="금액 입력 (예: 1,000,000)"
               class="w-full p-4 pl-4 pr-12 text-xl font-bold border-2 border-gray-200 rounded-xl focus:border-[#283593] focus:outline-none transition-colors"
             />
             <span class="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500 font-bold">원</span>

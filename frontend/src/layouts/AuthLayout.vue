@@ -20,7 +20,7 @@ const navLink = computed(() => {
 
     <!-- 2. 헤더 (로고 & 네비게이션) -->
     <header class="relative z-10 w-full max-w-6xl mx-auto px-6 py-6 flex justify-between items-center text-white">
-      <h1 class="text-2xl font-bold tracking-wide">AImFIN.</h1>
+      <h1 class="text-2xl font-bold tracking-wide">AImFIN</h1>
       <router-link :to="navLink.to" class="text-sm hover:underline opacity-90">
         {{ navLink.text }}
       </router-link>
@@ -36,7 +36,7 @@ const navLink = computed(() => {
 
     <!-- 4. 푸터 -->
     <footer class="relative z-10 py-6 text-center text-xs text-gray-400">
-      &copy; 2021. - 2026 All Rights Reserved. AImFIN
+      &copy; 2025 - All Rights Reserved. AImFIN
     </footer>
   </div>
 </template>
