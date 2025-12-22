@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import authApi from '@/services/auth.api';
+import { authApi } from '@/services/auth.api';
 import { useAuthStore } from '@/stores/auth'; // Auth Store 추가
 
 const router = useRouter();
@@ -20,8 +20,8 @@ const submitNickname = async () => {
   error.value = '';
 
   try {
-    // API call to set nickname (PATCH로 변경)
-    await authApi.patch('/users/profile/nickname', { nickname: nickname.value });
+    // API call to set nickname
+    await authApi.updateNickname(nickname.value);
     
     // 닉네임 설정 후 최신 유저 정보 다시 로드 (스토어 업데이트)
     await authStore.fetchUser();
