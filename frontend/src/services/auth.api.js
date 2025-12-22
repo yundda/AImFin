@@ -1,4 +1,3 @@
-// src/services/auth.api.js
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
@@ -8,7 +7,7 @@ const REFRESH_KEY = "refresh_token";
 const instance = axios.create({
   baseURL: API_BASE,
   headers: { "Content-Type": "application/json" },
-  withCredentials: true, // 쿠키 사용하는 경우 대비(로컬은 영향 적음)
+  withCredentials: true, // 쿠키 대비용(로컬에선 영향 적음)
 });
 
 // ---- 요청 인터셉터: auth 엔드포인트는 Authorization 제외 ----
@@ -60,8 +59,8 @@ export const authApi = {
   },
 
   refreshToken: () => {
-    // 쿠키 기반 리프레시 (refresh-cookie 엔드포인트 사용)
-    return instance.post("/users/auth/refresh-cookie", {});
+    const refresh = localStorage.getItem(REFRESH_KEY);
+    return instance.post("/users/auth/refresh", { refresh });
   },
 
   // 프로필/설문/선호
@@ -89,55 +88,60 @@ export const authApi = {
   updatePortfolio: (id, payload) =>
     instance.patch(`/portfolios/${id}/update`, payload),
   setRepresentative: (id) =>
-    instance.post("/portfolios/representative", { id }), // Changed to match likely backend expectation or check views.py again
+    instance.post("/portfolios/representative", { id }),
   deletePortfolio: (id) => instance.delete(`/portfolios/${id}/delete`),
 
-  // 포트폴리오 비교 분석 (comparePortfolio와 중복될 수 있으나 명칭 통일 위해 유지)
+  // 이름만 다른 중복 함수(유지 필요 없으면 제거 가능)
   comparePortfolios: (payload) =>
     instance.post("/analysis/compare/portfolio", payload),
 };
-// 401 자동-리프레시(동시에 여러 요청 들어와도 1회만 시도)
-let isRefreshing = false;
-let queue = [];
-const enqueue = (cb) => queue.push(cb);
-const flush = (newToken) => {
-  queue.forEach((cb) => cb(newToken));
-  queue = [];
+
+// 401 동시 요청 큐
+const enqueue = (cb) => {
+  (window.__refreshQueue = window.__refreshQueue || []).push(cb);
+};
+const flush = (newAccess) => {
+  (window.__refreshQueue || []).forEach((cb) => cb(newAccess));
+  window.__refreshQueue = [];
 };
 
-// ---- 응답 인터셉터: login/refresh 시 토큰 동기화 ----
+
+// ---- 응답 인터셉터: login/refresh 응답 토큰 동기화 + 401 자동 리프레시 ----
 instance.interceptors.response.use(
   (res) => {
     try {
-      const url = res.config?.url || "";
+      const url = (res.config?.url || "").toString();
       const data = res.data || {};
-      if (
-        url.includes("/users/auth/login") ||
-        url.includes("/users/auth/refresh")
-      ) {
+
+      // ✅ 앞/뒤 슬래시 유무 상관없이 감지
+      const isAuthCall = /\/?users\/auth\/(login|refresh)/.test(url);
+
+      if (isAuthCall) {
+        const { access, refresh } = data;
         if (access) {
           localStorage.setItem(ACCESS_KEY, access);
-          instance.defaults.headers.common[
-            "Authorization"
-          ] = `Bearer ${access}`;
+          instance.defaults.headers.common["Authorization"] = `Bearer ${access}`;
         }
-        if (data.refresh) localStorage.setItem(REFRESH_KEY, data.refresh);
+        if (refresh) {
+          localStorage.setItem(REFRESH_KEY, refresh);
+        }
       }
-    } catch (_) { }
+    } catch (_) {}
     return res;
   },
   async (error) => {
     const original = error.config || {};
     const status = error.response?.status || 0;
-    const url = original?.url || "";
-    const isAuthCall =
-      url?.includes("/users/auth/login") ||
-      url?.includes("/users/auth/refresh");
+    const url = (original?.url || "").toString();
 
-    if (status === 401 && !original._retry && !isAuthCall) {
+    // ✅ 로그인/리프레시는 리프레시 루프 제외
+    const isAuthCall = /\/?users\/auth\/(login|refresh)/.test(url);
+    const hasRefresh = !!localStorage.getItem(REFRESH_KEY);
+
+    if (status === 401 && !original._retry && !isAuthCall && hasRefresh) {
       original._retry = true;
 
-      // 동시 401 방지를 위한 간단 큐
+      // 동시 401 → 큐잉
       if (window.__isRefreshing) {
         return new Promise((resolve, reject) => {
           (window.__refreshQueue = window.__refreshQueue || []).push(
@@ -154,21 +158,25 @@ instance.interceptors.response.use(
       try {
         const resp = await authApi.refreshToken();
         const { access, refresh } = resp.data || {};
+
         if (access) {
           localStorage.setItem(ACCESS_KEY, access);
-          instance.defaults.headers.common[
-            "Authorization"
-          ] = `Bearer ${access}`;
+          instance.defaults.headers.common["Authorization"] = `Bearer ${access}`;
         }
-        if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
+        if (refresh) {
+          localStorage.setItem(REFRESH_KEY, refresh);
+        }
 
+        // 대기열 재시도
         const q = window.__refreshQueue || [];
         q.forEach((cb) => cb(access));
         window.__refreshQueue = [];
         window.__isRefreshing = false;
 
         original.headers = original.headers || {};
-        original.headers["Authorization"] = `Bearer ${access}`;
+        if (access) {
+          original.headers["Authorization"] = `Bearer ${access}`;
+        }
         return instance.request(original);
       } catch (e) {
         window.__isRefreshing = false;
@@ -178,6 +186,7 @@ instance.interceptors.response.use(
         return Promise.reject(e);
       }
     }
+
     return Promise.reject(error);
   }
 );

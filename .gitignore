@@ -1,1 +1,3 @@
 *.rdb
+package.json
+package-lock.json
