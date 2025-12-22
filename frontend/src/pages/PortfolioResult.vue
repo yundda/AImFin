@@ -286,10 +286,10 @@ const assetLabels = {
 
         <div class="flex gap-4 justify-center">
           <button
-            @click="router.push('/survey')"
+            @click="router.push({ name: 'portfolio-create', query: { type: resultData.profile } })"
             class="px-6 py-3 border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50"
           >
-            다시 진단하기
+            재구성하기
           </button>
           <button
             @click="showModal = true"

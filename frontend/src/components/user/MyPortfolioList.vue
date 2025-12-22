@@ -213,7 +213,7 @@ const assetsInfo = [
 
           <!-- 제목 및 날짜 -->
           <div class="mb-3">
-            <h3 class="font-bold text-gray-900 text-lg leading-tight">{{ p.name }}</h3>
+            <h3 class="font-bold text-gray-900 text-lg leading-tight truncate pr-2">{{ p.name }}</h3>
             <div class="flex items-center gap-2 mt-1">
               <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-bold rounded">{{ p.profile_label || p.profile }}</span>
               <span class="text-xs text-gray-400">{{ formatDate(p.created_at) }}</span>
@@ -261,7 +261,7 @@ const assetsInfo = [
       <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" @click="showDetailModal = false"></div>
 
       <!-- Modal Content -->
-      <div class="relative bg-white w-full max-w-2xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-up">
+      <div class="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-up">
         
         <!-- Header -->
         <div class="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white shrink-0">
@@ -281,9 +281,9 @@ const assetsInfo = [
             <!-- 1. 기본 정보 & 점수 -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
               <div>
-                <div class="flex items-center gap-3 mb-2">
-                  <h2 class="text-2xl font-bold text-gray-900">{{ detailData.name }}</h2>
-                  <span class="px-2.5 py-1 bg-blue-50 text-[#283593] text-xs font-bold rounded-lg">{{ detailData.profile_label }}</span>
+                <div class="flex items-center gap-3 mb-2 min-w-0">
+                  <h2 class="text-2xl font-bold text-gray-900 truncate">{{ detailData.name }}</h2>
+                  <span class="px-2.5 py-1 bg-blue-50 text-[#283593] text-xs font-bold rounded-lg shrink-0">{{ detailData.profile_label }}</span>
                 </div>
                 <p class="text-gray-400 text-sm">{{ formatDate(detailData.created_at) }} 생성</p>
                 <div class="mt-4 flex items-baseline gap-2">
