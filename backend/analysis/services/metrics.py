@@ -14,7 +14,7 @@ MU_PCT = {  # 기대수익률(연, %)
     AssetType.BONDS_GLB:    2.8,   # (3.5 → 2.8)
     AssetType.ALTERNATIVES: 6.0,   # (5.0 → 6.0)
     AssetType.FUNDS:        4.8,   # (4.5 → 4.8)
-    AssetType.CASH:         1.6,   # (1.5 → 1.6)
+    AssetType.CASH:         2.0,   # (1.5 → 1.6)
 }
 
 SIGMA_PCT = {  # 변동성(연, %)
@@ -65,12 +65,25 @@ ORDER = [
     AssetType.ALTERNATIVES, AssetType.FUNDS, AssetType.CASH
 ]
 
+
+def _as_asset_type(b) -> AssetType:
+    """문자열 'STOCKS_KR' 등을 AssetType enum으로 안전 변환"""
+    try:
+        return AssetType(b)
+    except Exception:
+        # 이미 enum일 수도 있고, 이상값이면 그대로 둔다(아래 in-check로 필터)
+        return b
+
 def _get_w_from_allocs(final_allocs: List[dict]) -> Dict[str, float]:
-    # {bucket: weight(0~1)}
-    w = {b: 0.0 for b in ORDER}
+    # {bucket(enum): weight(0~1)}  ← ★ enum 키로 통일
+    w: Dict[AssetType, float] = {b: 0.0 for b in ORDER}
     for it in final_allocs:
-        b = it["bucket"]
-        w[b] = float(it.get("weight_pct", 0.0)) / 100.0
+        raw = it.get("bucket")
+        if raw is None:
+            continue
+        b = _as_asset_type(raw)
+        if b in w:  # enum 키만 반영
+            w[b] = float(it.get("weight_pct", 0.0)) / 100.0
     return w
 
 def _variance(w: Dict[str, float]) -> float:
@@ -93,9 +106,9 @@ def _return(w: Dict[str, float]) -> float:
     return r
 
 def _risk_level(vol_pct: float) -> str:
-    if vol_pct < 8.0:
+    if vol_pct < 10.0:
         return "LOW"
-    if vol_pct < 15.0:
+    if vol_pct < 18.0:
         return "MEDIUM"
     return "HIGH"
 

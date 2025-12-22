@@ -72,7 +72,6 @@ class PortfolioCreateSerializer(serializers.Serializer):
 
     rationale = serializers.CharField(required=False, allow_blank=True, default="")
     summary = serializers.CharField(required=False, allow_blank=True, default="")
-    risks = serializers.CharField(required=False, allow_blank=True, default="")
 
     allocations = PortfolioAllocationInSerializer(many=True)
 
@@ -156,7 +155,7 @@ class PortfolioDetailSerializer(serializers.ModelSerializer):
             "id", "name",
             "amount_krw", "profile", "profile_label", "horizon_desc",
             "must_buckets", "corrections",
-            "rationale", "summary", "risks",
+            "rationale", "summary",
             "is_representative",
             "generated_at", "created_at", "updated_at",
             "allocations", "metrics",

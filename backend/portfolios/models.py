@@ -47,7 +47,6 @@ class Portfolio(models.Model):
     # 서술(라쇼날/요약/리스크)
     rationale = models.TextField(blank=True, default="")
     summary = models.TextField(blank=True, default="")
-    risks = models.TextField(blank=True, default="")
 
     # ✅ 대표 포트폴리오 플래그(이름 확정)
     is_representative = models.BooleanField(default=False)
