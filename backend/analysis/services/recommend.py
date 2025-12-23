@@ -5,6 +5,7 @@ from django.utils import timezone
 from jsonschema import validate
 
 from analysis.schemas.recommend_response import RECOMMEND_RESPONSE_SCHEMA
+from analysis.schemas.comment_response import COMMENT_RESPONSE_SCHEMA  
 from analysis.clients.gpt_client import complete_json
 from analysis.services.metrics import compute_portfolio_metrics, risk_score_0_100
 from analysis.prompts.util import render_prompt
@@ -27,7 +28,8 @@ def build_prompt(*, user, amount_krw: int, horizon_desc: str, must_buckets: list
         eligible_lines.append(f"- {b}: [{', '.join(eligible)}]" if eligible else f"- {b}: []")
 
     ctx = {
-        "risk_profile": policy["profile"],
+        # 프롬프트는 위험 성향에 한글 라벨만 사용(하단 텍스트 파일 규칙과 일치)
+        "risk_profile": policy["profile"],  # 필요 시 내부 참고용(프롬프트는 $risk_label만 사용)
         "risk_label": user.risk_snapshot.latest_result.get_profile_display(),
         "amount_krw": f"{amount_krw:,} KRW",
         "horizon_desc": horizon_desc,
@@ -86,12 +88,10 @@ def recommend_portfolio(
     uni = get_universe_rules_for(user)
     rules: Dict[str, BucketRule] = uni["rules"]
 
-    # 3-1) 기간(수명) 코드 오버라이드: 유효 코드면 적용, 아니면 무시
+    # 3-1) 기간 오버라이드(유효 코드일 때만 반영)
     apply_horizon_override(rules, horizon_desc)
 
-    # 3-2) 선택 버킷 모드 적용 (✅ 핵심: 사용자가 고른 버킷만 or +AI 추가 허용)
-    # - allow_ai_additions = False  → 선택 버킷만 허용(비선택 버킷 상한을 0에 가깝게)
-    # - allow_ai_additions = True   → 비선택도 허용(정책 한도 내)
+    # 3-2) 선택 버킷 모드 (사용자 선택만 허용 or AI 추가 허용)
     apply_selected_buckets_mode(rules, must_buckets, allow_ai_additions=allow_ai_additions)
 
     # 4) 정책 하에서 가중치 정규화
@@ -117,8 +117,26 @@ def recommend_portfolio(
     metrics_all = compute_portfolio_metrics(final_with_assets)
     expected_return_pct = float(f"{float(metrics_all.get('expected_return_pct', 0.0)):.2f}")
     risk_score = float(f"{float(risk_score_0_100(metrics_all)):.2f}")
+    
+    # 7) ★ 2차 호출: 최종안으로 코멘트 생성
+    final_lines = "\n".join([f"- {x['bucket']}: {float(x['weight_pct']):.2f}%" for x in final_with_assets])
+    comment_ctx = {
+        "final_alloc_lines": final_lines,
+        "er_pct": f"{expected_return_pct:.2f}",
+        "risk_score": f"{risk_score:.2f}",
+        "risk_label": user.risk_snapshot.latest_result.get_profile_display(),
+        "horizon_desc": horizon_desc,
+        "bucket_labels_table": labels_table_lines(),
+    }
+    comment_raw = complete_json(
+        render_prompt("comment_from_final.txt", comment_ctx),
+        schema=COMMENT_RESPONSE_SCHEMA
+    )
+    # 현지화(필요시)
+    comment_raw["rationale"] = localize_text(comment_raw.get("rationale", ""))
+    comment_raw["summary"]   = localize_text(comment_raw.get("summary", ""))
 
-    # 7) 최종 응답
+    # 8) 최종 응답(프론트엔드엔 final만 노출)
     snap = user.risk_snapshot.latest_result
     return {
         "profile": snap.profile,
@@ -126,11 +144,11 @@ def recommend_portfolio(
         "amount_krw": amount_krw,
         "horizon_desc": horizon_desc,
         "must_buckets": must_buckets,
-        "proposed_allocations": proposed,        # GPT 원안(로그)
-        "final_allocations": final_with_assets,  # 정책 보정 결과
-        "corrections": notes,                    # 보정 로그
-        "rationale": raw.get("rationale", ""),
-        "summary": raw.get("summary", ""),
+        # "proposed_allocations": proposed,  # 필요시만 유지, 프론트엔드는 숨겨도 OK
+        "final_allocations": final_with_assets,
+        "corrections": notes,
+        "rationale": comment_raw.get("rationale", ""),
+        "summary": comment_raw.get("summary", ""),
         "metrics": {
             "expected_return_pct": expected_return_pct,
             "risk_score": risk_score,
