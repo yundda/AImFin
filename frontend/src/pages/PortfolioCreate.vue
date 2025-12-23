@@ -61,10 +61,24 @@ const toggleAsset = (id) => {
   }
 };
 
+const showLowProductWarning = ref(false); // [NEW] 경고 모달 상태
+
+const confirmAutoAdditions = () => {
+    allowAiAdditions.value = true;
+    showLowProductWarning.value = false;
+    generatePortfolio();
+};
+
 const generatePortfolio = async () => {
   if (!amount.value || amount.value <= 0) return alert('투자 금액을 입력해주세요.');
   if (!horizon.value) return alert('투자 기간을 선택해주세요.');
   if (selectedAssets.value.length === 0) return alert('최소 1개 이상의 선호 상품을 선택해주세요.');
+
+  // [NEW] 3개 미만 선택 시 경고 (AI 자동 허용이 안 되어 있는 경우)
+  if (selectedAssets.value.length < 3 && !allowAiAdditions.value) {
+    showLowProductWarning.value = true;
+    return;
+  }
 
   try {
     const payload = {
@@ -106,7 +120,7 @@ const generatePortfolio = async () => {
           <div class="h-full bg-[#283593] w-full"></div> 
         </div>
 
-        <div class="text-sm font-bold text-gray-400 mb-8 tracking-widest text-center">STEP 2. 포트폴리오 조건 설정</div>
+        <div class="text-sm font-bold text-gray-400 mb-8 tracking-widest text-center">포트폴리오 조건 설정</div>
 
         <!-- 1. 투자 금액 -->
         <div class="mb-10">
@@ -140,7 +154,7 @@ const generatePortfolio = async () => {
 
         <!-- 2. 투자 기간 -->
         <div class="mb-10">
-          <label class="block text-lg font-bold text-gray-900 mb-4"> 투자를 얼마나 길게 할 계획인가요?</label>
+          <label class="block text-lg font-bold text-gray-900 mb-4"> 투자 기간은 어떻게 되시나요?</label>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button 
               v-for="opt in horizonOptions" 
@@ -156,7 +170,10 @@ const generatePortfolio = async () => {
 
         <!-- 3. 선호 상품 -->
         <div class="mb-12">
-          <label class="block text-lg font-bold text-gray-900 mb-4"> 포트폴리오에 꼭 담고 싶은 상품은?</label>
+          <label class="block text-lg font-bold text-gray-900 mb-2"> 포트폴리오에 꼭 담고 싶은 자산 유형은?</label>
+          <p class="text-sm text-gray-500 mb-4 font-medium">
+            (3개 이상 선택해야 AI가 원활하게 분석을 진행할 수 있어요.)
+          </p>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <button 
               v-for="opt in assetOptions" 
@@ -196,6 +213,34 @@ const generatePortfolio = async () => {
 
       </div>
     </div>
+
+    <!-- [NEW] 상품 개수 부족 경고 모달 -->
+    <div v-if="showLowProductWarning" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl w-full max-w-sm p-8 shadow-2xl relative animate-fade-in-up text-center">
+        <h2 class="text-xl font-bold mb-4 text-gray-900">AI 자동 배분 허용</h2>
+        
+        <p class="text-gray-600 mb-8 leading-relaxed text-sm">
+          상품을 3개 이상 선택하지 않으면 AI가 포트폴리오를 생성하는데 어려움을 겪을 수 있어요.<br><br>
+          <span class="font-bold text-[#283593]">AI가 자동으로 상품 추가 배분을<br>할 수 있도록 허용하시겠습니까?</span>
+        </p>
+
+        <div class="flex gap-3 justify-center">
+          <button 
+            @click="showLowProductWarning = false" 
+            class="flex-1 px-4 py-3 border border-gray-300 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-colors"
+          >
+            아니오
+          </button>
+          <button 
+            @click="confirmAutoAdditions" 
+            class="flex-1 px-4 py-3 bg-[#283593] text-white rounded-xl font-bold hover:bg-[#1a237e] shadow-lg"
+          >
+            예
+          </button>
+        </div>
+      </div>
+    </div>
+
   </DefaultLayout>
 </template>
 
@@ -207,5 +252,12 @@ const generatePortfolio = async () => {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>

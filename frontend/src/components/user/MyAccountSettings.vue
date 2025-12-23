@@ -64,7 +64,7 @@ const updatePassword = () => {
 
 <template>
   <div class="flex flex-col">
-    <h2 class="text-xl font-bold text-gray-900 mb-6">계정 설정</h2>
+    <h2 class="text-xl font-bold text-[#283593] mb-6">계정 설정</h2>
 
     <!-- 
       ✅ 변경 1: items-start 제거 
@@ -74,7 +74,7 @@ const updatePassword = () => {
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
       
       <!-- 1. 기본 정보 설정 -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 flex flex-col">
         <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
           <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-sm">👤</div>
           <h3 class="text-sm font-bold text-gray-600">기본 정보 수정</h3>
@@ -100,7 +100,7 @@ const updatePassword = () => {
           
           <!-- ✅ 변경 3: mt-auto -> mt-8 (버튼을 바닥이 아닌 입력창 근처로) -->
           <div class="mt-8 text-right">
-            <button type="submit" class="px-6 py-2.5 bg-[#2C4768] text-white text-sm font-bold rounded-lg hover:bg-[#1a2f4d] transition-colors shadow-md w-full sm:w-auto">
+            <button type="submit" class="px-6 py-2.5 bg-[#283593] text-white text-sm font-bold rounded-lg hover:bg-[#1a237e] transition-colors shadow-md w-full sm:w-auto">
               정보 저장
             </button>
           </div>
@@ -108,7 +108,7 @@ const updatePassword = () => {
       </div>
 
       <!-- 2. 비밀번호 변경 -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col opacity-50 relative">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 flex flex-col opacity-50 relative">
         <!-- Disabled Overlay -->
         <div class="absolute inset-0 z-10 bg-white/10 cursor-not-allowed" title="비밀번호 변경 미지원"></div>
         
@@ -146,7 +146,7 @@ const updatePassword = () => {
 
           <!-- 버튼 위치 조정 -->
           <div class="mt-8 text-right">
-            <button disabled type="submit" class="px-6 py-2.5 bg-[#536dfe] text-white text-sm font-bold rounded-lg hover:bg-[#4059e0] transition-colors shadow-md w-full sm:w-auto cursor-not-allowed">
+            <button disabled type="submit" class="px-6 py-2.5 bg-[#283593] text-white text-sm font-bold rounded-lg hover:bg-[#1a237e] transition-colors shadow-md w-full sm:w-auto cursor-not-allowed">
               비밀번호 변경
             </button>
           </div>

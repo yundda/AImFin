@@ -1,11 +1,12 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { authApi } from '@/services/auth.api';
 import MyPortfolioList from './MyPortfolioList.vue';
 import SimpleDonut from '@/components/common/SimpleDonut.vue';
 
 const router = useRouter();
+const route = useRoute();
 const portfolios = ref([]);
 const mainPortfolioDetail = ref(null);
 const isListView = ref(false);
@@ -25,6 +26,11 @@ const loadData = async () => {
     } catch (e) {
       // 대표 포인트가 없거나 에러 시 무시 (리스트에서 첫번째라도 가져올 수 있으면 좋겠지만, 대표 api가 있기에 그것 사용)
       mainPortfolioDetail.value = null;
+    }
+
+    // 3. 쿼리 파라미터 확인 (리스트 뷰 자동 전환)
+    if (route.query.view === 'list') {
+      isListView.value = true;
     }
 
   } catch (err) {
@@ -71,13 +77,13 @@ const mainAssets = computed(() => {
 });
 
 const assetsInfo = [
-  { label: '국내주식', color: '#283593' },
-  { label: '미국주식', color: '#3b82f6' },
-  { label: '국내채권', color: '#10b981' },
-  { label: '해외채권', color: '#34d399' },
-  { label: '대체투자', color: '#f59e0b' },
-  { label: '펀드', color: '#8b5cf6' },
-  { label: '현금성자산', color: '#cbd5e1' },
+  { label: '국내주식', color: '#536dfe' }, // Primary Blue
+  { label: '미국주식', color: '#3b82f6' }, // Light Blue
+  { label: '국내채권', color: '#10b981' }, // Green
+  { label: '해외채권', color: '#34d399' }, // Light Green
+  { label: '대체투자', color: '#f59e0b' }, // Amber
+  { label: '펀드', color: '#8b5cf6' }, // Purple
+  { label: '현금성자산', color: '#cbd5e1' }, // Gray
 ];
 
 const handleCreatePortfolio = async () => {
@@ -106,7 +112,7 @@ const sortedAssets = computed(() => {
 </script>
 
 <template>
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 h-full flex flex-col relative">
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 h-full flex flex-col relative">
     
     <!-- 1. 리스트 보기 모드 -->
     <MyPortfolioList v-if="isListView" @back="handleListBack" class="animate-fade-in" />
@@ -114,7 +120,7 @@ const sortedAssets = computed(() => {
     <!-- 2. 요약 화면 (대시보드) -->
     <div v-else class="h-full flex flex-col">
       <div class="flex justify-between items-start mb-8">
-        <div>
+        <div class="pl-3 sm:pl-4">
           <h2 class="text-2xl font-bold text-[#283593] mb-1">내 포트폴리오</h2>
           <p v-if="portfolios.length > 0" class="text-sm text-gray-400">
             총 {{ portfolios.length }}개의 포트폴리오를 관리 중입니다.
@@ -162,13 +168,16 @@ const sortedAssets = computed(() => {
         </div>
 
         <!-- 차트 영역 -->
-        <div class="border border-gray-100 rounded-2xl p-4 sm:p-6 flex items-center justify-between mt-auto">
+        <div class="border border-gray-200 rounded-2xl p-3 sm:p-4 flex items-center justify-between mt-auto">
           <div>
             <h3 class="font-bold text-gray-900 mb-4">AI 추천 자산 배분</h3>
             <div class="space-y-1 text-sm text-gray-600">
-              <div v-for="(item, idx) in sortedAssets" :key="idx" class="flex items-center gap-2" v-show="item.value > 0">
-                <span class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></span>
-                {{ item.label }} {{ item.value }}%
+              <div v-for="(item, idx) in sortedAssets" :key="idx" class="flex items-center justify-between w-full" v-show="item.value > 0">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full" :style="{ backgroundColor: item.color }"></span>
+                  <span class="text-gray-600">{{ item.label }}</span>
+                </div>
+                <span class="font-bold text-gray-800">{{ item.value }}%</span>
               </div>
             </div>
           </div>

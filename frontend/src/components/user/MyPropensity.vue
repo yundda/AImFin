@@ -63,7 +63,7 @@ const retakeSurvey = () => {
     <!-- 설문 결과가 있는 경우 -->
     <div v-if="hasSurvey">
       <!-- 현재 성향 카드 -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
         <h3 class="text-sm font-bold text-gray-500 mb-6">현재 투자 성향</h3>
         
         <div class="flex items-center gap-6">
@@ -82,7 +82,7 @@ const retakeSurvey = () => {
       </div>
 
       <!-- 성향 특징 리스트 -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
         <h3 class="text-sm font-bold text-gray-500 mb-6">투자 성향 특징</h3>
         <ul class="space-y-3">
           <li v-for="(feat, idx) in currentProfile.features" :key="idx" class="flex items-center text-sm text-gray-700">
@@ -102,7 +102,7 @@ const retakeSurvey = () => {
     </div>
 
     <!-- 설문 결과가 없는 경우 -->
-    <div v-else class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+    <div v-else class="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
       <div class="text-5xl mb-6">📝</div>
       <h3 class="text-lg font-bold text-gray-900 mb-2">아직 투자 성향 진단을 하지 않으셨네요!</h3>
       <p class="text-gray-500 mb-8">나에게 딱 맞는 포트폴리오를 받으려면 먼저 투자 성향을 진단해야 합니다.</p>

@@ -33,16 +33,16 @@ const userEmail = computed(() => {
 </script>
 
 <template>
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center h-full">
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center h-full">
     <!-- 프로필 이미지 -->
-    <div class="w-24 h-24 mx-auto bg-[#536dfe] rounded-full flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-md">
+    <div class="w-24 h-24 mx-auto bg-[#283593] rounded-full flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-md">
       {{ userInitial }}
     </div>
     
     <!-- 이름 & 이메일 -->
     <h2 class="text-xl font-bold text-gray-900 mb-1">{{ userName }}</h2>
     <div v-if="authStore.user?.survey_profile_label" class="mb-2">
-      <span class="inline-block px-2.5 py-0.5 bg-blue-100 text-[#536dfe] text-xs font-bold rounded-lg border border-blue-200">
+      <span class="inline-block px-2.5 py-0.5 bg-blue-50 text-[#283593] text-xs font-bold rounded-lg border border-blue-100">
         {{ authStore.user.survey_profile_label }}
       </span>
     </div>
@@ -55,7 +55,7 @@ const userEmail = computed(() => {
         :key="menu.id"
         @click="emit('update:activeTab', menu.id)"
         class="w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 text-sm font-medium"
-        :class="activeTab === menu.id ? 'bg-gray-50 text-[#536dfe] font-bold' : 'text-gray-600 hover:bg-gray-50'"
+        :class="activeTab === menu.id ? 'bg-gray-50 text-[#283593] font-bold' : 'text-gray-600 hover:bg-gray-50'"
       >
         <span class="mr-3">{{ menu.icon }}</span>
         {{ menu.label }}

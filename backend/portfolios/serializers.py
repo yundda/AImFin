@@ -12,9 +12,10 @@ from assets.enums import AssetType
 from assets.models import Asset
 
 try:
-    from analysis.services.metrics import compute_portfolio_metrics
+    from analysis.services.metrics import compute_portfolio_metrics, risk_score_0_100
 except Exception:  # pragma: no cover
     compute_portfolio_metrics = None
+    risk_score_0_100 = None
 
 
 def q2f(x: float | int | Decimal | None) -> float:
@@ -119,9 +120,14 @@ class PortfolioCreateSerializer(serializers.Serializer):
             if compute_portfolio_metrics:
                 try:
                     m = compute_portfolio_metrics(norm_allocs)
+                    # compute_portfolio_metrics 결과에 risk_score가 직접 없으면 별도 함수 호출
+                    rs = m.get("risk_score")
+                    if rs is None and risk_score_0_100:
+                        rs = risk_score_0_100(m)
+
                     metrics_dict = {
                         "expected_return_pct": q2f(m.get("expected_return_pct")),
-                        "risk_score": q2f(m.get("risk_score")),
+                        "risk_score": q2f(rs),
                     }
                 except Exception:
                     pass
