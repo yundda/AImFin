@@ -25,11 +25,11 @@ const questions = [
   // 2. History (Period & Freq) -> Maps to two fields
   {
     id: 2, category: '투자 기간',
-    question: '지금까지의 투자 기간과 빈도는 어떻게 되시나요?',
+    question: '지금까지의 투자 기간은 어떻게 되시나요?',
     options: [
-      { label: '1년 미만 / 거의 없음', value: { period: '<1y', freq: 'none' } },
-      { label: '1~3년 / 연 1~3회', value: { period: '1-3y', freq: 'year_1_3' } },
-      { label: '3년 이상 / 월 1회 이상', value: { period: '>=3y', freq: 'month_1plus' } }
+      { label: '1년 미만 ', value: { period: '<1y', freq: 'none' } },
+      { label: '1~3년', value: { period: '1-3y', freq: 'year_1_3' } },
+      { label: '3년 이상', value: { period: '>=3y', freq: 'month_1plus' } }
     ]
   },
   // 3. Income
@@ -41,16 +41,17 @@ const questions = [
   ]},
   // 4. Wealth
   { id: 4, field: 'wealth', category: '자산 규모', question: '총 금융자산 규모는 어떻게 되시나요?', options: [
-    { label: '5천만 미만', value: '<50m' },
-    { label: '5천~1억', value: '50_100m' },
-    { label: '1억~5억', value: '100m_500m' },
-    { label: '5억 이상', value: '>=500m' }
+    { label: '5백만원 미만', value: '<50m' },
+    { label: '5백만원 ~ 1천만원', value: '50_100m' },
+    { label: '1천만원 ~ 5천만원', value: '100m_500m' },
+    { label: '5천만원 이상', value: '>=500m' }
   ]},
-  // 5. Debt Ratio (Note: Values inferred from backend logic)
+  // 5. Debt Ratio (Detailed %)
   { id: 5, field: 'debt_ratio', category: '부채 비중', question: '자산 대비 부채 비중은 어떻게 되시나요?', options: [
-    { label: '상당히 있음', value: 'gte_50pct' }, // Score 0
-    { label: '소폭 있음', value: 'lt_50pct' },     // Score 2
-    { label: '없음', value: 'none' }               // Score 3
+    { label: '50% 이상', value: 'gte_50pct' },
+    { label: '30~50%', value: '30_50pct' },
+    { label: '10~30%', value: '10_30pct' },
+    { label: '10% 미만', value: 'lt_10pct' }
   ]},
   // 6. Invest Share
   { id: 6, field: 'invest_share', category: '투자 비중', question: '전체 자산 중 투자금 비중은 어떻게 되시나요?', options: [
@@ -59,13 +60,12 @@ const questions = [
     { label: '10~30%', value: '10_30pct' },
     { label: '10% 미만', value: '<10pct' }
   ]},
-  // 7. Purpose
+  // 7. Purpose (Refined)
   { id: 7, field: 'purpose', category: '투자 목적', question: '이번 투자의 주된 목적은 무엇인가요?', options: [
-    { label: '자산 보존', value: 'capital_preservation' },
-    { label: '예금+α 수익', value: 'above_deposit' },
-    { label: '자산 증식', value: 'market_return' },
-    { label: '적극적 수익', value: 'above_market' },
-    { label: '단기 고수익', value: 'trading_high_risk' }
+    { label: '자산 보존 및 안정적 수익 (예금+α)', value: 'preservation' },
+    { label: '중위험 중수익 (예금 금리 2배 목표)', value: 'moderate' },
+    { label: '적극적 수익 (시장 수익률 초과 목표)', value: 'active' },
+    { label: '고수익 추구 (단기 트레이딩 및 공격적 투자)', value: 'aggressive' }
   ]},
   // 8. Target Return
   { id: 8, field: 'target_return', category: '목표 수익률', question: '기대하는 연 수익률은 어떻게 되시나요?', options: [
@@ -225,7 +225,7 @@ const finishSurvey = async () => {
         </button>
       </div>
       
-      <button v-if="currentQ.type === 'multi'" @click="nextStep" class="mt-8 w-full py-4 bg-[#536dfe] text-white font-bold rounded-xl shadow-md hover:bg-[#4059e0]">
+      <button v-if="currentQ.type === 'multi'" @click="nextStep" class="mt-8 w-full py-4 bg-[#283593] text-white font-bold rounded-xl shadow-md hover:bg-[#4059e0]">
         다음
       </button>
     </div>
