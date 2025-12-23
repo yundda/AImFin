@@ -21,7 +21,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 SECRET_KEY = env("SECRET_KEY", default="dev-secret-change-me")
 DEBUG = env.bool("DEBUG", default=True)
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "localhost"])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
 
 
@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
+    "drf_spectacular_sidecar",
     "csp",
 
     'django.contrib.admin',
@@ -157,7 +158,7 @@ SIMPLE_JWT = {
 # CORS (개발용)
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",    # Vite
-    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -187,19 +188,10 @@ CONTENT_SECURITY_POLICY = {
         "connect-src": (
             "'self'",
             "http://localhost:5173",
-            "http://localhost:5173",
+            "http://127.0.0.1:5173",
         ),
 
-        # (선택) 프레임/오브젝트/미디어 등 필요 시 추가
-        # "frame-ancestors": ("'self'",),
-        # "media-src": ("'self'",),
     },
-
-    # (선택) Report-Only로 먼저 적용해보고 싶을 때 True로
-    # "REPORT_ONLY": False,
-
-    # (선택) 리포트 수집 엔드포인트
-    # "REPORT_URI": ["https://your.report.collector.example/csp"],
 }
 # Redis 캐시/세션 (django-redis)
 CACHES = {
@@ -212,6 +204,16 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'AImFin API',
+    'DESCRIPTION': 'Internal API',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,  # /api/docs/에서 /api/schema/ 직접 호출하므로 보통 False
+}
+
+SPECTACULAR_SETTINGS.update({
+    'SWAGGER_UI_DIST': 'SIDECAR',  # CDN 대신 로컬 정적 파일 사용
+})
 
 
 AUTH_USER_MODEL = "users.User"

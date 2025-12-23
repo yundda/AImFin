@@ -6,6 +6,7 @@ from django.utils import timezone
 from jsonschema import validate
 
 from analysis.schemas.recommend_response import RECOMMEND_RESPONSE_SCHEMA
+from analysis.schemas.comment_response import COMMENT_RESPONSE_SCHEMA  # ★추가
 from analysis.clients.gpt_client import complete_json
 from analysis.services.metrics import compute_portfolio_metrics, risk_score_0_100
 from analysis.prompts.util import render_prompt
@@ -76,20 +77,29 @@ def evaluate_rebalance(
     expected_return_pct = float(f"{float(m_all.get('expected_return_pct', 0.0)):.2f}")
     risk_score = float(f"{risk_score_0_100(m_all):.2f}")
 
-    return {
-        "profile": risk_profile,
-        "profile_label": risk_label,
-        "amount_krw": amount_krw,
+    final_lines = "\n".join([f"- {x['bucket']}: {float(x['weight_pct']):.2f}%" for x in final_with_assets])
+    comment_ctx = {
+        "final_alloc_lines": final_lines,
+        "er_pct": f"{expected_return_pct:.2f}",
+        "risk_score": f"{risk_score:.2f}",
+        "risk_label": getattr(p, "profile_label", ""),  # 포트폴리오 라벨
         "horizon_desc": horizon_desc,
-        "must_buckets": must_buckets,
-        "proposed_allocations": proposed,
-        "final_allocations": final_with_assets,
-        "corrections": notes,
-        "rationale": raw.get("rationale", ""),
-        "summary": raw.get("summary", ""),
+        "bucket_labels_table": labels_table_lines(),
+    }
+    comment_raw = complete_json(
+        render_prompt("comment_from_final.txt", comment_ctx),
+        schema=COMMENT_RESPONSE_SCHEMA
+    )
+    comment_raw["rationale"] = localize_text(comment_raw.get("rationale", ""))
+    comment_raw["summary"]   = localize_text(comment_raw.get("summary", ""))
+
+    return {
+        # ...기존 응답 키 유지...
+        "rationale": comment_raw.get("rationale", ""),
+        "summary": comment_raw.get("summary", ""),
         "metrics": {
             "expected_return_pct": expected_return_pct,
             "risk_score": risk_score,
         },
-        "generated_at": timezone.now().isoformat(),
+        # ...생략...
     }
