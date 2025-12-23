@@ -37,7 +37,7 @@ const steps = [
     step: 'STEP 02', 
     iconContent: '<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25z" />', 
     title: 'AI 포트폴리오 생성', 
-    desc: '금융 데이터 3억 건을 학습한 AI가\n최적의 포트폴리오를 생성합니다.' 
+    desc: '정교하게 짜여진 로직을 학습한 AI가\n최적의 포트폴리오를 생성합니다.' 
   },
   { 
     id: 'rebalance',
