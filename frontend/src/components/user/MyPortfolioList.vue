@@ -196,7 +196,7 @@ const assetsInfo = [
         :key="p.id" 
         class="rounded-2xl p-5 transition-all group relative bg-white shadow-sm hover:shadow-md cursor-pointer flex items-stretch justify-between"
         :class="[
-          p.is_representative ? 'border-2 border-[#283593] bg-blue-50/10' : 'border-2 border-gray-100 hover:border-[#283593]/50'
+          p.is_representative ? 'border-2 border-[#283593] bg-blue-50/10' : 'border border-gray-200 hover:border-[#283593]/50'
         ]"
         @click="openDetailModal(p.id)"
       >
@@ -215,7 +215,7 @@ const assetsInfo = [
           <div class="mb-3">
              <div class="flex items-center gap-2 mb-1 min-w-0 pr-2">
                  <h3 class="font-bold text-gray-900 text-lg leading-tight truncate">{{ p.name }}</h3>
-                 <span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-bold rounded shrink-0">{{ p.profile_label || p.profile }}</span>
+                 <span class="inline-block px-2.5 py-0.5 bg-blue-50 text-[#283593] text-xs font-bold rounded-lg border border-blue-100 shrink-0">{{ p.profile_label || p.profile }}</span>
              </div>
             <div class="text-xs text-gray-400">{{ formatDate(p.created_at) }}</div>
           </div>
@@ -282,7 +282,7 @@ const assetsInfo = [
             <div class="bg-white px-2">
                 <div class="flex items-center gap-3 mb-1 min-w-0">
                   <h2 class="text-3xl font-bold text-gray-900 truncate">{{ detailData.name }}</h2>
-                  <span class="px-3 py-1 bg-blue-50 text-[#283593] text-sm font-bold rounded-lg shrink-0">{{ detailData.profile_label }}</span>
+                  <span class="px-3 py-1 bg-blue-50 text-[#283593] text-sm font-bold rounded-lg border border-blue-100 shrink-0">{{ detailData.profile_label }}</span>
                 </div>
                 <p class="text-gray-400 text-sm">{{ formatDate(detailData.created_at) }} 생성</p>
             </div>

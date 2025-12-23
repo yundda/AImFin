@@ -32,10 +32,10 @@ const goToCreate = () => {
       <div class="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 relative overflow-hidden">
         <!-- 배경 장식 -->
         <div class="absolute top-0 left-0 w-full h-2 bg-gray-100">
-          <div class="h-full bg-[#536dfe] w-1/2"></div> <!-- 진행률 50% -->
+          <div class="h-full bg-[#283593] w-1/2"></div> <!-- 진행률 50% -->
         </div>
 
-        <div class="text-sm font-bold text-gray-400 mb-6 tracking-widest">STEP 1. 성향 분석 완료</div>
+        <div class="text-sm font-bold text-gray-400 mb-6 tracking-widest">성향 분석 완료</div>
         
         <div class="text-6xl mb-6 animate-bounce-slow">{{ result.icon }}</div>
         
@@ -50,8 +50,8 @@ const goToCreate = () => {
 
         <div class="bg-gray-50 rounded-xl p-6 mb-10">
           <p class="text-gray-700 font-medium">
-            "투자 성향 분석이 완료되었어요!<br/>
-            다음으로 <span class="text-[#536dfe] font-bold">나만의 맞춤 포트폴리오</span>를 만들어볼까요?"
+            투자 성향 분석이 완료되었습니다.<br/>
+            다음으로 <span class="text-[#536dfe] font-bold">나만의 맞춤 포트폴리오</span>를 만들어볼까요?
           </p>
         </div>
 
@@ -59,7 +59,7 @@ const goToCreate = () => {
           <button @click="router.push('/survey')" class="px-8 py-4 border border-gray-300 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-colors">
             성향 재진단하기
           </button>
-          <button @click="goToCreate" class="px-8 py-4 bg-[#2C4768] text-white rounded-xl font-bold hover:bg-[#1a2f4d] shadow-lg transition-transform hover:-translate-y-1">
+          <button @click="goToCreate" class="px-8 py-4 bg-[#283593] text-white rounded-xl font-bold hover:bg-[#1a2f4d] shadow-lg transition-transform hover:-translate-y-1">
             포트폴리오 만들기 →
           </button>
         </div>

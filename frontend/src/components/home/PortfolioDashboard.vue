@@ -68,7 +68,7 @@ const nickname = computed(() => authStore.user?.nickname || '회원');
 
 const assetsInfo = [
   { label: '국내주식', color: 'bg-[#283593]' },
-  { label: '미국주식', color: 'bg-[#3b82f6]' },
+  { label: '해외주식', color: 'bg-[#3b82f6]' },
   { label: '국내채권', color: 'bg-[#10b981]' },
   { label: '해외채권', color: 'bg-[#34d399]' },
   { label: '대체투자', color: 'bg-[#f59e0b]' },
@@ -119,6 +119,10 @@ const startRebalance = () => {
     query: { mode: 'rebalance_select' } 
   });
 };
+
+const goToList = () => {
+  router.push({ path: '/user/mypage', query: { view: 'list' } });
+};
 </script>
 
 <template>
@@ -129,8 +133,9 @@ const startRebalance = () => {
 
       <!-- 상단 헤더 -->
       <div class="flex justify-between items-center mb-6 relative z-10">
-        <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-[#283593] text-xs font-bold rounded-full">
-          <span class="w-2 h-2 rounded-full bg-[#283593]"></span>
+        <!-- 대표 포트폴리오 배지 (테두리 스타일) -->
+        <div class="inline-flex items-center gap-2 px-2 py-0.5 border border-[#283593] bg-white text-[#283593] text-[11px] font-bold rounded ml-5">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#283593]"></span>
           대표 포트폴리오
         </div>
         <button @click="goToList" class="flex items-center gap-1 text-sm font-bold text-gray-400 hover:text-[#283593] transition-colors">
@@ -143,18 +148,18 @@ const startRebalance = () => {
         
         <!-- 좌측: 텍스트 및 지표 -->
         <div class="flex-1 w-full">
-          <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2 leading-tight">
+          <h2 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2 leading-tight pl-5">
             {{ portfolio.name }}
           </h2>
-          <p class="text-gray-500 mb-6">{{ portfolio.typeLabel }} 성향 기반의 AI 맞춤 전략입니다.</p>
+          <p class="text-gray-500 mb-12 pl-5">{{ portfolio.typeLabel }} 성향 기반의 AI 맞춤 전략입니다.</p>
 
-          <div v-if="portfolio.aiComment" class="mb-8 bg-blue-50/50 p-5 rounded-2xl border border-blue-100/50">
-            <h4 class="text-sm font-bold text-[#283593] mb-3 flex items-center gap-2">
+          <div v-if="portfolio.aiComment" class="mb-8 bg-gray-50 rounded-2xl p-5 border border-gray-100">
+            <h4 class="text-sm font-bold text-[#283593] mb-2 flex items-center gap-2">
               <span class="text-lg">💡</span> AI 투자 코멘트
             </h4>
-            <p class="text-gray-700 text-sm leading-relaxed whitespace-pre-line font-medium">
+            <div class="text-gray-700 text-sm leading-relaxed whitespace-pre-line font-medium">
               {{ portfolio.aiComment }}
-            </p>
+            </div>
           </div>
 
           <!-- ✅ 핵심 지표 카드 -->
@@ -221,14 +226,19 @@ const startRebalance = () => {
       <!-- 하단 버튼 -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-8 border-t border-gray-100">
         <button @click="goToCompare" class="flex items-center justify-center gap-3 py-4 rounded-xl border-2 border-gray-300 hover:border-[#283593] hover:text-[#283593] hover:bg-blue-50 transition-all group">
-          <span class="text-2xl group-hover:scale-110 transition-transform">🆚</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-gray-400 group-hover:text-[#283593] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
+          </svg>
           <div class="text-left">
             <div class="font-bold text-gray-900 group-hover:text-[#283593]">포트폴리오 비교 / 리밸런싱 하기</div>
             <div class="text-xs text-gray-400">다른 전략과 수익률을 비교해보세요</div>
           </div>
         </button>
         <button @click="openCreateModal" class="flex items-center justify-center gap-3 py-4 rounded-xl bg-[#283593] hover:bg-[#1a237e] text-white transition-all shadow-md hover:shadow-lg group">
-          <span class="text-2xl group-hover:rotate-180 transition-transform duration-500">✨</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
           <div class="text-left">
             <div class="font-bold">포트폴리오 생성하기</div>
             <div class="text-xs text-blue-100">새로운 투자 목표로 다시 만들기</div>
@@ -287,7 +297,9 @@ const startRebalance = () => {
               <div class="font-bold text-gray-900 group-hover:text-[#283593]">다른 포트폴리오와 비교</div>
               <div class="text-xs text-gray-500">내 포트폴리오 목록 중 하나와 비교합니다</div>
             </div>
-            <span class="text-2xl">🆚</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-gray-400 group-hover:text-[#283593] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+            </svg>
           </button>
 
           <button 
@@ -298,7 +310,10 @@ const startRebalance = () => {
               <div class="font-bold text-gray-900 group-hover:text-[#283593]">현재 구성 리밸런싱</div>
               <div class="text-xs text-gray-500">현재 포트폴리오의 비중을 조정하여 분석합니다</div>
             </div>
-            <span class="text-2xl">⚖️</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-gray-400 group-hover:text-[#283593] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
+            </svg>
           </button>
         </div>
         

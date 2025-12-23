@@ -7,7 +7,7 @@ from django.utils import timezone
 from jsonschema import validate
 
 from analysis.clients.gpt_client import complete_json
-from analysis.services.metrics import compute_portfolio_metrics
+from analysis.services.metrics import compute_portfolio_metrics, risk_score_0_100
 from analysis.prompts.util import render_prompt
 from analysis.schemas.compare_response import COMPARE_RESPONSE_SCHEMA
 from analysis.services.common import localize_text, labels_table_lines
@@ -65,9 +65,16 @@ def _metrics_from_spec_or_compute(spec: Dict[str, Any], allocs: List[Dict[str, A
     # 서버 계산
     m = compute_portfolio_metrics(allocs) or {}
     er = float(m.get("expected_return_pct", 0.0))
+    
     # compare 측은 위험점수를 metrics.compute의 risk_score_0_100이 없을 수 있으니
-    # 없으면 0.00으로 안전 처리
-    rs = float(m.get("risk_score_0_100", m.get("risk_score", 0.0)))
+    # 없으면 metrics.risk_score_0_100 함수로 계산
+    if "risk_score_0_100" in m:
+        rs = float(m["risk_score_0_100"])
+    elif "risk_score" in m:
+        rs = float(m["risk_score"])
+    else:
+        rs = float(risk_score_0_100(m))
+
     return {
         "expected_return_pct": float(f"{er:.2f}"),
         "risk_score": float(f"{rs:.2f}"),

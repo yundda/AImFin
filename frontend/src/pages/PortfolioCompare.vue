@@ -207,7 +207,11 @@ const runComparison = async () => {
       payload.right = {
         type: 'allocations',
         allocations: allocations,
-        label: rightP.value.name
+        label: rightP.value.name,
+        metrics: {
+          expected_return_pct: rightStats.value.returnRate,
+          risk_score: rightStats.value.riskScore
+        }
       };
     } else {
       payload.right = { type: 'id', id: rightP.value.id };
@@ -284,7 +288,7 @@ const analyzeRebalance = async () => {
         expected_return_pct: result.metrics?.expected_return_pct || 0,
         risk_score: result.metrics?.risk_score || 0
       },
-      aiComment: Array.isArray(result.summary) ? result.summary.join('\n') : (result.summary || '분석 결과가 없습니다.')
+      aiComment: Array.isArray(result.rationale) ? result.rationale.join('\n') : (result.rationale || '분석 결과가 없습니다.')
     };
 
     isRebalancing.value = false;
@@ -372,15 +376,18 @@ const getSortedAssets = (assets, limit = null) => {
 
       <!-- [STEP 1] 선택 화면 -->
       <div v-if="step === 'select'" class="flex flex-col md:flex-row items-center justify-center gap-8 fade-in">
-        <div @click="openSelectModal(0)" class="w-full max-w-md min-h-[500px] rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#283593] hover:bg-blue-50/30 transition-all group relative bg-white overflow-hidden shadow-sm hover:shadow-md p-6">
+        <div @click="openSelectModal(0)" class="w-full max-w-md min-h-[500px] rounded-3xl border border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-[#283593] hover:bg-blue-50/30 transition-all group relative bg-white overflow-hidden shadow-sm hover:shadow-md p-6">
+          
+          <!-- 다시 선택 버튼 (카드 상단 우측) -->
+          <button v-if="leftP" @click.stop="openSelectModal(0)" class="absolute top-4 right-4 px-3 py-1.5 text-xs font-bold text-gray-400 hover:text-[#283593] hover:bg-blue-50/50 rounded-lg transition-colors flex items-center gap-1 z-10">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+            다시 선택
+          </button>
+
           <div v-if="leftP" class="text-center w-full h-full flex flex-col items-center justify-between gap-6">
-            <div class="w-full relative pt-2">
-              <h3 class="font-bold text-2xl text-gray-900 truncate px-2 pr-24">{{ leftP.name }}</h3>
+            <div class="w-full pt-2">
+              <h3 class="font-bold text-2xl text-gray-900 truncate px-2">{{ leftP.name }}</h3>
               <p class="text-sm text-gray-400 mt-1">{{ leftP.created_at ? new Date(leftP.created_at).toLocaleDateString() : '날짜 없음' }}</p>
-              <button @click.stop="openSelectModal(0)" class="absolute top-0 right-0 px-3 py-1.5 text-xs font-bold text-gray-400 hover:text-[#283593] hover:bg-blue-50/50 rounded-lg transition-colors flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
-                다시 선택
-              </button>
             </div>
 
             <!-- 차트 & 타입 -->
@@ -446,15 +453,18 @@ const getSortedAssets = (assets, limit = null) => {
 
         <div class="w-12 h-12 rounded-full bg-[#283593] text-white flex items-center justify-center font-bold text-lg shadow-lg z-10">VS</div>
 
-        <div @click="openSelectModal(1)" class="w-full max-w-md min-h-[500px] rounded-3xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#283593] hover:bg-blue-50/30 transition-all group relative bg-white overflow-hidden shadow-sm hover:shadow-md p-6">
+        <div @click="openSelectModal(1)" class="w-full max-w-md min-h-[500px] rounded-3xl border border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-[#283593] hover:bg-blue-50/30 transition-all group relative bg-white overflow-hidden shadow-sm hover:shadow-md p-6">
+          
+          <!-- 다시 선택 버튼 (카드 상단 우측) -->
+          <button v-if="rightP" @click.stop="openSelectModal(1)" class="absolute top-4 right-4 px-3 py-1.5 text-xs font-bold text-gray-400 hover:text-[#283593] hover:bg-blue-50/50 rounded-lg transition-colors flex items-center gap-1 z-10">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+            다시 선택
+          </button>
+
           <div v-if="rightP" class="text-center w-full h-full flex flex-col items-center justify-between gap-6">
-            <div class="w-full relative pt-2">
-              <h3 class="font-bold text-2xl text-gray-900 truncate px-2 pr-24">{{ rightP.name }}</h3>
+            <div class="w-full pt-2">
+              <h3 class="font-bold text-2xl text-gray-900 truncate px-2">{{ rightP.name }}</h3>
               <p class="text-sm text-gray-400 mt-1">{{ rightP.created_at ? new Date(rightP.created_at).toLocaleDateString() : '날짜 없음' }}</p>
-              <button @click.stop="openSelectModal(1)" class="absolute top-0 right-0 px-3 py-1.5 text-xs font-bold text-gray-400 hover:text-[#283593] hover:bg-blue-50/50 rounded-lg transition-colors flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
-                다시 선택
-              </button>
             </div>
 
             <!-- 차트 & 타입 -->
@@ -534,10 +544,15 @@ const getSortedAssets = (assets, limit = null) => {
           <div class="flex-1 bg-white p-8 rounded-3xl shadow-sm border border-gray-200">
             <div class="flex justify-between items-start mb-6">
               <h3 class="font-bold text-xl truncate pr-2 flex-1 min-w-0">{{ leftP.name }}</h3>
-              <span class="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold shrink-0">{{ leftP.typeLabel }}</span>
             </div>
             <div class="flex items-center gap-6 mb-6">
-              <SimpleDonut :assets="leftP.assets" :labels="assetLabels" :colors="assetColors" size="w-24 h-24" />
+              <!-- 도넛 차트 + 라벨 오버레이 -->
+              <div class="relative shrink-0">
+                <SimpleDonut :assets="leftP.assets" :labels="assetLabels" :colors="assetColors" size="w-24 h-24" />
+                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span class="text-xs font-bold text-[#283593] text-center leading-tight px-1">{{ leftP.typeLabel }}</span>
+                </div>
+              </div>
               <div class="space-y-1 flex-1">
                 <div class="space-y-2 flex-1">
                   <div class="flex justify-between text-sm"><span class="text-gray-500">수익률</span><span class="font-bold text-[#283593]">+{{ leftStats.returnRate }}%</span></div>
@@ -562,7 +577,8 @@ const getSortedAssets = (assets, limit = null) => {
               </div>
             </div>
             <div class="bg-blue-50 p-4 rounded-xl text-sm text-[#2C4768]">
-              <strong>🤖 AI 분석:</strong> {{ leftP.aiComment || leftP.memo || '분석 정보 없음' }}
+              <strong>AI 분석:</strong>
+              <div class="mt-1 whitespace-pre-line">{{ leftP.aiComment || '분석 정보 없음' }}</div>
             </div>
           </div>
 
@@ -582,14 +598,26 @@ const getSortedAssets = (assets, limit = null) => {
               </div>
               <!-- 리밸런싱 토글 (Shrink 안되게 고정) -->
               <div class="flex items-center gap-2 cursor-pointer shrink-0" @click="toggleRebalance">
-                <span class="text-xs font-bold" :class="isRebalancing ? 'text-[#283593]' : 'text-gray-400'">리밸런싱</span>
+                <span class="text-xs font-bold flex items-center gap-1" :class="isRebalancing ? 'text-[#283593]' : 'text-gray-400'">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
+                  </svg>
+                  리밸런싱
+                </span>
                 <div class="w-10 h-5 bg-gray-200 rounded-full relative transition-colors" :class="{'bg-[#283593]': isRebalancing}"><div class="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform shadow-sm" :class="{'translate-x-5': isRebalancing}"></div></div>
               </div>
             </div>
 
             <div v-if="!isRebalancing">
               <div class="flex items-center gap-6 mb-6">
-                <SimpleDonut :assets="rightP.assets" :labels="assetLabels" :colors="assetColors" size="w-24 h-24" />
+                <!-- 도넛 차트 + 라벨 오버레이 -->
+                <div class="relative shrink-0">
+                  <SimpleDonut :assets="rightP.assets" :labels="assetLabels" :colors="assetColors" size="w-24 h-24" />
+                  <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span class="text-xs font-bold text-[#283593] text-center leading-tight px-1">{{ rightP.typeLabel }}</span>
+                  </div>
+                </div>
                 <div class="space-y-1 flex-1">
                 <div class="space-y-2 flex-1">
                   <div class="flex justify-between text-sm"><span class="text-gray-500">수익률</span><span class="font-bold text-[#283593]">+{{ rightStats.returnRate }}%</span></div>
@@ -614,7 +642,7 @@ const getSortedAssets = (assets, limit = null) => {
                 </div>
               </div>
             <div class="bg-blue-50 p-4 rounded-xl text-sm text-[#2C4768]">
-              <strong>🤖 AI 분석:</strong>
+              <strong>AI 분석:</strong>
               <div class="mt-1 whitespace-pre-line">{{ rightP.aiComment || '분석 정보 없음' }}</div>
             </div>
               
@@ -685,19 +713,19 @@ const getSortedAssets = (assets, limit = null) => {
             <span>📑</span> 포트폴리오 비교 분석 결과
           </h3>
           <div class="space-y-6 text-sm text-gray-700 leading-relaxed">
+
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+               <h4 class="font-bold text-green-600 mb-2">요약 및 제안</h4>
+               <p class="whitespace-pre-line">{{ comparisonResult.summary }}</p>
+            </div>
             
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-               <h4 class="font-bold text-[#283593] mb-2">분석 근거 (Rationale)</h4>
+               <h4 class="font-bold text-[#283593] mb-2">분석 근거</h4>
                <p class="whitespace-pre-line">{{ comparisonResult.rationale }}</p>
             </div>
 
              <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-               <h4 class="font-bold text-green-600 mb-2">요약 및 제안 (Summary)</h4>
-               <p class="whitespace-pre-line">{{ comparisonResult.summary }}</p>
-            </div>
-
-             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-               <h4 class="font-bold text-orange-500 mb-2">위험 요인 (Risks)</h4>
+               <h4 class="font-bold text-orange-500 mb-2">위험 요인</h4>
                <p class="whitespace-pre-line">{{ comparisonResult.risks }}</p>
             </div>
 
@@ -712,19 +740,57 @@ const getSortedAssets = (assets, limit = null) => {
       <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">포트폴리오 선택</h3><button @click="showSelectModal = false">✕</button></div>
         <div class="space-y-3">
-          <button v-for="p in portfolios.filter(i => !i.isTemp && i.id !== selectedIds[1 - selectingIndex])" :key="p.id" @click="selectPortfolio(p.id)" class="w-full text-left p-4 rounded-xl border hover:border-[#283593] bg-gray-50 hover:bg-blue-50 transition-all flex justify-between items-center">
-            <div class="flex-1 min-w-0 pr-4">
-              <div class="font-bold truncate text-lg">{{ p.name }}</div>
-              <div v-if="p.typeLabel" class="text-xs text-gray-500">{{ p.typeLabel }}</div>
+          <div 
+            v-for="p in portfolios.filter(i => !i.isTemp && i.id !== selectedIds[1 - selectingIndex])" 
+            :key="p.id" 
+            @click="selectPortfolio(p.id)" 
+            class="rounded-2xl p-5 transition-all group relative bg-white shadow-sm hover:shadow-md cursor-pointer border border-gray-200 hover:border-[#283593]/50"
+          >
+            <!-- 좌측: 정보 영역 -->
+            <div class="flex-1 flex flex-col justify-center">
+              
+              <!-- 대표 뱃지 -->
+              <div v-if="p.is_representative" class="mb-2">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-[#283593] text-white text-[10px] font-bold rounded-full">
+                  <span class="w-1.5 h-1.5 bg-white rounded-full"></span>
+                  대표
+                </span>
+                <span v-if="p.isAi" class="ml-1 text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full font-bold">AI 추천</span>
+              </div>
+              <div v-else-if="p.isAi" class="mb-2">
+                <span class="text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full font-bold">AI 추천</span>
+              </div>
+
+              <!-- 제목 및 날짜 -->
+              <div class="mb-3">
+                 <div class="flex items-center gap-2 mb-1 min-w-0 pr-2">
+                     <h3 class="font-bold text-gray-900 text-lg leading-tight truncate">{{ p.name }}</h3>
+                     <span class="inline-block px-2.5 py-0.5 bg-blue-50 text-[#283593] text-xs font-bold rounded-lg border border-blue-100 shrink-0">{{ p.typeLabel || p.profile_label || '성향 미정' }}</span>
+                 </div>
+                <div class="text-xs text-gray-400">{{ p.created_at ? new Date(p.created_at).toLocaleDateString() : '' }} 생성</div>
+              </div>
+
+              <!-- 메트릭 -->
+              <div class="flex justify-between items-end mt-2">
+                <!-- 왼쪽: 자산 정보 -->
+                <div class="flex flex-col">
+                  <span class="text-[10px] font-bold text-gray-400 mb-0.5">운용 자산</span>
+                  <span class="font-bold text-gray-900 text-base">{{ (p.amount_krw || 0).toLocaleString() }}원</span>
+                </div>
+
+                <!-- 오른쪽: 수익/위험 메트릭 -->
+                <div class="grid grid-cols-[auto_auto] gap-x-2 gap-y-1 text-right">
+                  <span class="text-gray-400 text-xs self-center">수익률</span>
+                  <span class="font-bold text-[#283593] text-sm">+{{ p.metrics?.expected_return_pct }}%</span>
+
+                  <span class="text-gray-400 text-xs self-center">위험도</span>
+                  <span class="font-bold text-sm" :class="(p.metrics?.risk_score || 0) > 60 ? 'text-red-500' : ((p.metrics?.risk_score || 0) > 40 ? 'text-yellow-500' : 'text-green-500')">
+                    {{ (p.metrics?.risk_score || 0).toFixed(0) }}점 ({{ (p.metrics?.risk_score || 0) > 60 ? '높음' : ((p.metrics?.risk_score || 0) > 40 ? '중간' : '낮음') }})
+                  </span>
+                </div>
+              </div>
             </div>
-            <div class="flex flex-col items-end gap-1 shrink-0">
-              <span v-if="p.is_representative" class="inline-flex items-center gap-1 px-2 py-0.5 bg-[#283593] text-white text-[10px] font-bold rounded-full">
-                <span class="w-1.5 h-1.5 bg-white rounded-full"></span>
-                대표
-              </span>
-              <span v-if="p.isAi" class="text-[10px] bg-purple-100 text-purple-600 px-2 py-1 rounded-full font-bold">AI 추천</span>
-            </div>
-          </button>
+          </div>
         </div>
       </div>
     </div>
@@ -745,7 +811,7 @@ const getSortedAssets = (assets, limit = null) => {
         </h3>
         <p class="text-gray-500 text-sm leading-relaxed">
           AI가 상세 리포트를 생성하고 있습니다.<br/>
-          최대 30초 정도 소요될 수 있으니 잠시만 기다려주세요
+          최대 30초 정도 소요될 수 있으니 잠시만 기다려주세요.
         </p>
       </div>
     </div>
