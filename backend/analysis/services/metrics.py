@@ -8,13 +8,13 @@ from assets.enums import AssetType
 RISK_FREE_PCT = 2.0  # (기존 1.5 → 2.0)
 
 MU_PCT = {  # 기대수익률(연, %)
-    AssetType.STOCKS_KR:    8.5,   # (7.0 → 8.5)
-    AssetType.STOCKS_GLB:   9.0,   # (7.5 → 9.0)
-    AssetType.BONDS_KR:     2.3,   # (3.0 → 2.3)
-    AssetType.BONDS_GLB:    2.8,   # (3.5 → 2.8)
-    AssetType.ALTERNATIVES: 6.0,   # (5.0 → 6.0)
-    AssetType.FUNDS:        4.8,   # (4.5 → 4.8)
-    AssetType.CASH:         2.0,   # (1.5 → 1.6)
+    AssetType.STOCKS_KR:   10.5,   # (8.5 → 10.5) 공격적
+    AssetType.STOCKS_GLB:  12.0,   # (9.0 → 12.0) 공격적
+    AssetType.BONDS_KR:     2.0,   # (2.3 → 2.0)
+    AssetType.BONDS_GLB:    2.5,   # (2.8 → 2.5)
+    AssetType.ALTERNATIVES: 7.0,   # (6.0 → 7.0)
+    AssetType.FUNDS:        5.5,   # (4.8 → 5.5)
+    AssetType.CASH:         1.5,   # (2.0 → 1.5)
 }
 
 SIGMA_PCT = {  # 변동성(연, %)

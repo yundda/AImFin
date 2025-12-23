@@ -14,14 +14,13 @@ HISTORY_PERIOD_SCORES = {"<1y": 0, "1-3y": 1, ">=3y": 2}
 HISTORY_FREQ_SCORES = {"none": 0, "year_1_3": 1, "month_1plus": 2}
 INCOME_SCORES = {"<30m": 0, "30_70m": 1, "70_100m": 2, ">=100m": 3}
 WEALTH_SCORES = {"<50m": 0, "50_100m": 1, "100m_500m": 2, ">=500m": 3}
-DEBT_SCORES = {"none": 3, "lt_50pct": 2, "gte_50pct": 0}
+DEBT_SCORES = {"gte_50pct": 0, "30_50pct": 1, "10_30pct": 2, "lt_10pct": 3}
 INVEST_SHARE_SCORES = {"<10pct": 3, "10_30pct": 2, "30_50pct": 1, ">=50pct": 0}
 PURPOSE_SCORES = {
-    "capital_preservation": 0,
-    "above_deposit": 1,
-    "market_return": 2,
-    "above_market": 3,
-    "trading_high_risk": 4,
+    "preservation": 0,
+    "moderate": 2,
+    "active": 3,
+    "aggressive": 4,
 }
 TARGET_RETURN_SCORES = {"<=3": 0, "3_5": 1, "5_10": 2, ">=10": 3}
 LOSS_RESPONSE_SCORES = {"sell_all": 0, "sell_partial": 1, "hold": 2, "buy_more": 3}
