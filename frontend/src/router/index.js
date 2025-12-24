@@ -1,75 +1,73 @@
 import { createRouter, createWebHistory } from "vue-router";
-import Login from "@/pages/auth/Login.vue";
-import Signup from "@/pages/auth/Signup.vue";
-import Home from "@/pages/Home.vue";
-import MyPage from "@/pages/user/MyPage.vue";
-import Survey from "@/pages/Survey.vue";
-import SurveyResult from "@/pages/SurveyResult.vue";
-import PortfolioCreate from "@/pages/PortfolioCreate.vue";
-import PortfolioResult from "@/pages/PortfolioResult.vue";
-import PortfolioCompare from "@/pages/PortfolioCompare.vue";
-import NicknameSetup from "@/pages/onboarding/NicknameSetup.vue";
-import OauthCallback from "@/pages/OauthCallback.vue";
+import { useAuthStore } from "@/stores/auth";
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: "/", name: "home", component: Home, meta: { requiresAuth: true } }, // ✅ 인증 필요 표시
-    { path: "/auth/login", name: "login", component: Login },
-    { path: "/auth/signup", name: "signup", component: Signup },
-
-    // ✅ 인증이 필요한 페이지들에 meta 추가
-    // ✅ 인증이 필요한 페이지들에 meta 추가
+    {
+      path: "/",
+      name: "home",
+      component: () => import("@/pages/Home.vue"),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: "/auth/login",
+      name: "login",
+      component: () => import("@/pages/auth/Login.vue")
+    },
+    {
+      path: "/auth/signup",
+      name: "signup",
+      component: () => import("@/pages/auth/Signup.vue")
+    },
     {
       path: "/user/mypage",
       name: "mypage",
-      component: MyPage,
+      component: () => import("@/pages/user/MyPage.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/survey",
       name: "survey",
-      component: Survey,
+      component: () => import("@/pages/Survey.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/survey/result",
       name: "survey-result",
-      component: SurveyResult,
+      component: () => import("@/pages/SurveyResult.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/portfolio/create",
       name: "portfolio-create",
-      component: PortfolioCreate,
+      component: () => import("@/pages/PortfolioCreate.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/portfolio/result",
       name: "portfolio-result",
-      component: PortfolioResult,
+      component: () => import("@/pages/PortfolioResult.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/portfolio/compare",
       name: "portfolio-compare",
-      component: PortfolioCompare,
+      component: () => import("@/pages/PortfolioCompare.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/onboarding/nickname",
       name: "nickname-setup",
-      component: NicknameSetup,
+      component: () => import("@/pages/onboarding/NicknameSetup.vue"),
     },
     {
       path: "/oauth/callback",
       name: "oauth-callback",
-      component: OauthCallback,
+      component: () => import("@/pages/OauthCallback.vue"),
     },
   ],
 });
-
-import { useAuthStore } from "@/stores/auth";
 
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();

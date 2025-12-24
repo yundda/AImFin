@@ -370,8 +370,13 @@ const getSortedAssets = (assets, limit = null) => {
   <DefaultLayout>
     <div class="max-w-6xl mx-auto px-6 py-12">
       <div class="text-center mb-10">
-        <h2 class="text-3xl font-bold text-gray-900">포트폴리오 비교하기</h2>
-        <p class="text-gray-500 mt-2">두 개의 전략을 나란히 놓고 분석해보세요</p>
+        <h2 class="text-3xl font-bold text-gray-900">
+          <span v-if="analysisLoading">AI가 두 포트폴리오를 비교 중입니다<span class="loading-dots"></span></span>
+          <span v-else>포트폴리오 비교하기</span>
+        </h2>
+        <p class="text-gray-500 mt-2">
+          {{ analysisLoading ? '잠시만 기다려주세요' : '두 개의 전략을 나란히 놓고 분석해보세요' }}
+        </p>
       </div>
 
       <!-- [STEP 1] 선택 화면 -->
@@ -535,8 +540,57 @@ const getSortedAssets = (assets, limit = null) => {
         </button>
       </div>
 
-      <!-- [STEP 2] 비교 분석 화면 -->
-      <div v-if="step === 'analyze'" class="fade-in">
+
+
+      <!-- [STEP 2] 비교 분석 화면 (Skeleton) -->
+      <div v-if="step === 'analyze' && analysisLoading" class="animate-pulse">
+        <div class="flex flex-col lg:flex-row gap-8 items-stretch mb-12">
+          
+          <!-- 왼쪽 포트폴리오 -->
+          <div class="flex-1 bg-white p-8 rounded-3xl shadow-sm border border-gray-200">
+            <div class="h-6 bg-gray-300 rounded w-1/3 mb-6"></div>
+            <div class="flex items-center gap-6 mb-6">
+              <div class="w-24 h-24 bg-gray-300 rounded-full shrink-0"></div>
+              <div class="space-y-2 flex-1">
+                <div class="h-4 bg-gray-300 rounded w-full"></div>
+                <div class="h-4 bg-gray-300 rounded w-3/4"></div>
+              </div>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-xl h-24"></div>
+          </div>
+
+          <!-- 중앙 VS (Skeleton) -->
+          <div class="flex flex-col items-center justify-center gap-4">
+             <div class="w-16 h-1 bg-gray-300 rounded lg:w-1 lg:h-16"></div>
+          </div>
+
+          <!-- 오른쪽 포트폴리오 (Skeleton) -->
+          <div class="flex-1 bg-white p-8 rounded-3xl shadow-sm border border-gray-200">
+            <div class="h-6 bg-gray-300 rounded w-1/3 mb-6"></div>
+            <div class="flex items-center gap-6 mb-6">
+              <div class="w-24 h-24 bg-gray-300 rounded-full shrink-0"></div>
+              <div class="space-y-2 flex-1">
+                <div class="h-4 bg-gray-300 rounded w-full"></div>
+                <div class="h-4 bg-gray-300 rounded w-3/4"></div>
+              </div>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-xl h-24"></div>
+          </div>
+        </div>
+
+        <!-- 하단 리포트 (Skeleton) -->
+        <div class="bg-gray-50 border border-gray-200 rounded-3xl p-8">
+           <div class="h-6 bg-gray-300 rounded w-1/4 mb-6"></div>
+           <div class="space-y-4">
+             <div class="h-20 bg-white rounded-xl"></div>
+             <div class="h-20 bg-white rounded-xl"></div>
+             <div class="h-20 bg-white rounded-xl"></div>
+           </div>
+        </div>
+      </div>
+
+      <!-- [STEP 2] 비교 분석 화면 (Real Content) -->
+      <div v-else-if="step === 'analyze' && !analysisLoading" class="fade-in">
         
         <div class="flex flex-col lg:flex-row gap-8 items-stretch mb-12">
           
@@ -802,19 +856,7 @@ const getSortedAssets = (assets, limit = null) => {
         <div class="flex gap-3 justify-end"><button @click="showSaveModal = false" class="px-4 py-2 border rounded font-bold text-gray-500">취소</button><button @click="saveNewPortfolio" class="px-6 py-2 bg-[#283593] text-white rounded font-bold">저장</button></div>
       </div>
     </div>
-    <!-- 로딩 오버레이 -->
-    <div v-if="analysisLoading" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] backdrop-blur-sm fade-in">
-      <div class="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center text-center max-w-sm animate-fade-in-up">
-        <div class="w-16 h-16 border-4 border-gray-200 border-t-[#283593] rounded-full animate-spin mb-6"></div>
-        <h3 class="text-xl font-bold text-gray-900 mb-2">
-          {{ isRebalancing ? '전략 재설계 및 분석 중...' : '포트폴리오 비교 분석 중...' }}
-        </h3>
-        <p class="text-gray-500 text-sm leading-relaxed">
-          AI가 상세 리포트를 생성하고 있습니다.<br/>
-          최대 30초 정도 소요될 수 있으니 잠시만 기다려주세요.
-        </p>
-      </div>
-    </div>
+
   </DefaultLayout>
 </template>
 
@@ -823,4 +865,20 @@ const getSortedAssets = (assets, limit = null) => {
 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.loading-dots::after {
+  content: '.';
+  animation: dots 1.5s steps(3, end) infinite;
+  display: inline-block;
+  width: 1.5em; /* 점 3개 공간 확보 */
+  text-align: left;
+}
+
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
+}
 </style>

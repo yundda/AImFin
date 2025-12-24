@@ -2,11 +2,49 @@
 import { ref, onMounted, computed } from 'vue';
 import { authApi } from '@/services/auth.api';
 import SimpleDonut from '@/components/common/SimpleDonut.vue';
+import BaseToast from '@/components/common/BaseToast.vue'; // Toast Import
+import BaseConfirm from '@/components/common/BaseConfirm.vue'; // Confirm Import
 
 const emit = defineEmits(['back']); 
 
 const portfolios = ref([]);
 const loading = ref(true);
+
+// Toast Status
+const toast = ref({
+  visible: false,
+  message: '',
+  type: 'success'
+});
+const showToast = (message, type = 'success') => {
+  toast.value = { visible: true, message, type };
+};
+
+// Confirm Status
+const confirmDialog = ref({
+  visible: false,
+  title: '',
+  message: '',
+  type: 'info',
+  onConfirm: null
+});
+
+const showConfirm = ({ title, message, type = 'info', onConfirm }) => {
+  confirmDialog.value = {
+    visible: true,
+    title,
+    message,
+    type,
+    onConfirm
+  };
+};
+
+const handleConfirm = () => {
+  if (confirmDialog.value.onConfirm) {
+    confirmDialog.value.onConfirm();
+  }
+  confirmDialog.value.visible = false;
+};
 
 // 수정 관련
 const showEditModal = ref(false);
@@ -41,7 +79,7 @@ const openDetailModal = async (id) => {
     detailData.value = res.data;
   } catch (err) {
     console.error("Failed to load detail:", err);
-    alert("상세 정보를 불러오지 못했습니다.");
+    showToast("상세 정보를 불러오지 못했습니다.", "error");
     showDetailModal.value = false;
   } finally {
     detailLoading.value = false;
@@ -65,26 +103,33 @@ const setMainFromModal = async () => {
     // 상세 데이터도 업데이트 (필요하다면)
     detailData.value.is_representative = true;
 
-    alert("대표 포트폴리오로 설정되었습니다.");
+    showToast("대표 포트폴리오로 설정되었습니다.", "success");
     showDetailModal.value = false; // 설정 후 닫기 (선택적)
   } catch (err) {
     console.error("Failed to set main:", err);
-    alert("설정 실패");
+    showToast("설정에 실패했습니다.", "error");
   }
 };
 
-const deletePortfolio = async (id) => {
-  if(!confirm('정말 삭제하시겠습니까? 복구할 수 없습니다.')) return;
-  try {
-    await authApi.deletePortfolio(id);
-    portfolios.value = portfolios.value.filter(p => p.id !== id);
-    if (showDetailModal.value && detailData.value?.id === id) {
-      showDetailModal.value = false;
+const deletePortfolio = (id) => {
+  showConfirm({
+    title: '포트폴리오 삭제',
+    message: '정말 삭제하시겠습니까?\n삭제된 포트폴리오는 복구할 수 없습니다.',
+    type: 'danger',
+    onConfirm: async () => {
+      try {
+        await authApi.deletePortfolio(id);
+        portfolios.value = portfolios.value.filter(p => p.id !== id);
+        if (showDetailModal.value && detailData.value?.id === id) {
+          showDetailModal.value = false;
+        }
+        showToast("삭제되었습니다.", "info");
+      } catch (err) {
+        console.error("Failed to delete:", err);
+        showToast("삭제에 실패했습니다.", "error");
+      }
     }
-  } catch (err) {
-    console.error("Failed to delete:", err);
-    alert("삭제 실패");
-  }
+  });
 };
 
 const openEditModal = (p) => {
@@ -93,7 +138,7 @@ const openEditModal = (p) => {
 };
 
 const saveEdit = async () => {
-  if (!editForm.value.name) return alert("이름을 입력해주세요.");
+  if (!editForm.value.name) return showToast("이름을 입력해주세요.", "warning");
   
   try {
     const res = await authApi.updatePortfolio(editForm.value.id, {
@@ -105,9 +150,10 @@ const saveEdit = async () => {
       portfolios.value[idx].name = updated.name;
     }
     showEditModal.value = false;
+    showToast("수정되었습니다.", "success");
   } catch (err) {
     console.error("Failed to update:", err);
-    alert("수정 실패");
+    showToast("수정에 실패했습니다.", "error");
   }
 };
 
@@ -194,7 +240,7 @@ const assetsInfo = [
       <div 
         v-for="p in sortedPortfolios" 
         :key="p.id" 
-        class="rounded-2xl p-5 transition-all group relative bg-white shadow-sm hover:shadow-md cursor-pointer flex items-stretch justify-between"
+        class="rounded-2xl p-5 transition-shadow duration-300 group relative bg-white shadow-sm hover:shadow-md cursor-pointer flex items-stretch justify-between"
         :class="[
           p.is_representative ? 'border-2 border-[#283593] bg-blue-50/10' : 'border border-gray-200 hover:border-[#283593]/50'
         ]"
@@ -258,7 +304,7 @@ const assetsInfo = [
     <div v-if="showDetailModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
       
       <!-- Backdrop -->
-      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" @click="showDetailModal = false"></div>
+      <div class="absolute inset-0 bg-black/60 transition-opacity" @click="showDetailModal = false"></div>
 
       <!-- Modal Content -->
       <div class="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-up">
@@ -307,7 +353,7 @@ const assetsInfo = [
                     </div>
                     <div class="h-3 w-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 rounded-full relative shadow-inner">
                       <div 
-                        class="absolute top-1/2 -translate-y-1/2 w-1.5 h-6 bg-gray-800 border-2 border-white rounded-sm shadow-md transition-all duration-1000 ease-out"
+                        class="absolute top-1/2 -translate-y-1/2 w-1.5 h-6 bg-gray-800 border-2 border-white rounded-sm shadow-md transition-shadow duration-300 duration-1000 ease-out"
                         :style="{ left: (detailData.metrics?.risk_score || 0) + '%' }"
                       ></div>
                     </div>
@@ -397,6 +443,24 @@ const assetsInfo = [
         </div>
       </div>
     </div>
+    <!-- Confirm Dialog -->
+    <BaseConfirm
+      :visible="confirmDialog.visible"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      :type="confirmDialog.type"
+      confirm-text="삭제"
+      @confirm="handleConfirm"
+      @cancel="confirmDialog.visible = false"
+    />
+
+    <!-- Toast -->
+    <BaseToast 
+      :visible="toast.visible" 
+      :message="toast.message" 
+      :type="toast.type" 
+      @close="toast.visible = false" 
+    />
   </div>
 </template>
 

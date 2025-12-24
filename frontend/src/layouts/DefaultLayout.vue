@@ -1,14 +1,47 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { ref } from 'vue';
+import BaseConfirm from '@/components/common/BaseConfirm.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
 
-const handleLogout = async() => {
-  // 로그아웃 로직
-  await authStore.logout();
-  router.push('/auth/login');
+const confirmDialog = ref({
+  visible: false,
+  title: '',
+  message: '',
+  type: 'info',
+  onConfirm: null
+});
+
+const showConfirm = ({ title, message, type = 'info', onConfirm }) => {
+  confirmDialog.value = {
+    visible: true,
+    title,
+    message,
+    type,
+    onConfirm
+  };
+};
+
+const handleConfirmAction = () => {
+  if (confirmDialog.value.onConfirm) {
+    confirmDialog.value.onConfirm();
+  }
+  confirmDialog.value.visible = false;
+};
+
+const handleLogout = () => {
+  showConfirm({
+    title: '로그아웃',
+    message: '로그아웃 하시겠습니까?',
+    type: 'danger',
+    onConfirm: async () => {
+      await authStore.logout();
+      router.push('/auth/login');
+    }
+  });
 };
 </script>
 
@@ -43,5 +76,14 @@ const handleLogout = async() => {
     <footer class="py-6 text-center text-[10px] text-gray-400 mt-auto">
       &copy; 2025 - All Rights Reserved. AImFIN
     </footer>
+    <BaseConfirm
+      :visible="confirmDialog.visible"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      :type="confirmDialog.type"
+      confirm-text="로그아웃"
+      @confirm="handleConfirmAction"
+      @cancel="confirmDialog.visible = false"
+    />
   </div>
 </template>

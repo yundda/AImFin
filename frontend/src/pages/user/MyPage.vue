@@ -7,9 +7,35 @@ import UserProfileCard from '@/components/user/UserProfileCard.vue';
 import MyPortfolioStatus from '@/components/user/MyPortfolioStatus.vue';
 import MyPropensity from '@/components/user/MyPropensity.vue';
 import MyAccountSettings from '@/components/user/MyAccountSettings.vue';
+import BaseConfirm from '@/components/common/BaseConfirm.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
+
+const confirmDialog = ref({
+  visible: false,
+  title: '',
+  message: '',
+  type: 'info',
+  onConfirm: null
+});
+
+const showConfirm = ({ title, message, type = 'info', onConfirm }) => {
+  confirmDialog.value = {
+    visible: true,
+    title,
+    message,
+    type,
+    onConfirm
+  };
+};
+
+const handleConfirmAction = () => {
+  if (confirmDialog.value.onConfirm) {
+    confirmDialog.value.onConfirm();
+  }
+  confirmDialog.value.visible = false;
+};
 
 // activeTab 기본값을 'dashboard'로 설정하여 처음엔 포트폴리오 현황이 보이게 함
 const activeTab = ref('dashboard'); 
@@ -23,9 +49,16 @@ onMounted(async () => {
   }
 });
 
-const handleLogout = async () => {
-  await authStore.logout();
-  router.push('/auth/login');
+const handleLogout = () => {
+  showConfirm({
+    title: '로그아웃',
+    message: '로그아웃 하시겠습니까?',
+    type: 'danger',
+    onConfirm: async () => {
+      await authStore.logout();
+      router.push('/auth/login');
+    }
+  });
 };
 </script>
 
@@ -64,6 +97,16 @@ const handleLogout = async () => {
 
       </div>
     </div>
+    <!-- Logout Confirm Dialog -->
+    <BaseConfirm
+      :visible="confirmDialog.visible"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      :type="confirmDialog.type"
+      confirm-text="로그아웃"
+      @confirm="handleConfirmAction"
+      @cancel="confirmDialog.visible = false"
+    />
   </DefaultLayout>
 </template>
 

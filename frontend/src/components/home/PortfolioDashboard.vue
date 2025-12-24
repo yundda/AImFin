@@ -249,7 +249,7 @@ const goToList = () => {
     </div>
 
     <!-- Create Portfolio Modal -->
-    <div v-if="showCreateModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+    <div v-if="showCreateModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl relative animate-fade-in-up text-center">
         <h3 class="text-xl font-bold mb-4 text-gray-900">투자 성향 재진단 안내</h3>
         
@@ -283,7 +283,7 @@ const goToList = () => {
     </div>
 
     <!-- Compare/Rebalance Selection Modal -->
-    <div v-if="showCompareModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+    <div v-if="showCompareModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl relative animate-fade-in-up text-center">
         <h3 class="text-xl font-bold mb-4 text-gray-900">어떤 작업을 진행할까요?</h3>
      

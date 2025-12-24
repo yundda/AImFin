@@ -230,7 +230,7 @@ KAKAO_REDIRECT_URI = env("KAKAO_REDIRECT_URI", default="http://localhost:8000/ap
 
 
 # --- LLM/GMS 설정 (기존 변수와 호환) ---
-OPENAI_MODEL   = env("OPENAI_MODEL",   default="gpt-4o-mini")
+OPENAI_MODEL   = env("OPENAI_MODEL",   default="gpt-4o-realtime-preview-2024-10-01")
 OPENAI_TIMEOUT = env.int("OPENAI_TIMEOUT", default=30)
 
 GMS_BASE_URL = env("GMS_BASE_URL", default="https://gms.ssafy.io/gmsapi")
