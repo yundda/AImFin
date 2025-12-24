@@ -198,8 +198,8 @@ const generatePortfolio = async () => {
                   class="w-5 h-5 text-[#283593] rounded border-gray-300 focus:ring-[#283593]"
                 >
                 <label for="ai-additions-create" class="flex-1 cursor-pointer select-none">
-                    <div class="font-bold text-gray-900">AI 상품 자동 배분 허용</div>
-                    <div class="text-xs text-gray-500">선택하신 상품 외에 AI가 추가로 상품을 추가하여 자동 배분합니다.</div>
+                    <div class="font-bold text-gray-900">AI 자산 자동 배분 허용</div>
+                    <div class="text-xs text-gray-500">선택하신 자산 외에 AI가 추가로 자산을 추가하여 자동 배분합니다.</div>
                 </label>
             </div>
         </div>
