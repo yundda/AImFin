@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import BaseInput from '@/components/common/BaseInput.vue';
 import SocialLoginButtons from '@/components/auth/SocialLoginButtons.vue';
+import BaseToast from '@/components/common/BaseToast.vue'; // Import BaseToast
 
 import { useRouter } from 'vue-router';
 import { authApi } from '@/services/auth.api';
@@ -15,6 +16,17 @@ const form = ref({
   agreeTerms: false
 });
 
+// Toast State
+const toast = ref({
+  visible: false,
+  message: '',
+  type: 'success'
+});
+
+const showToast = (message, type = 'success') => {
+  toast.value = { visible: true, message, type };
+};
+
 const handleSignup = async () => {
   // 비밀번호 유효성 검사: 8자 이상, 영문자 및 숫자 포함
   const isValidPassword = form.value.password.length >= 8 && 
@@ -22,12 +34,12 @@ const handleSignup = async () => {
                           /\d/.test(form.value.password);
 
   if (!isValidPassword) {
-    alert('비밀번호는 영문자와 숫자를 모두 포함하여 8자 이상이어야 합니다.');
+    showToast('비밀번호는 영문자와 숫자를 모두 포함하여 8자 이상이어야 합니다.', 'warning');
     return;
   }
 
   if (!form.value.agreeTerms) {
-    alert('개인정보 수집에 동의해주세요.');
+    showToast('개인정보 수집에 동의해주세요.', 'warning');
     return;
   }
   
@@ -36,16 +48,21 @@ const handleSignup = async () => {
       email: form.value.email,
       password: form.value.password
     });
-    alert('회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.');
-    router.push('/auth/login');
+    
+    showToast('회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.', 'light-success');
+    
+    // 토스트를 보여준 뒤 이동
+    setTimeout(() => {
+      router.push('/auth/login');
+    }, 1500);
+    
   } catch (error) {
     console.error('Signup failed:', error);
-    // DRF returns object with field errors, e.g. { email: [...], non_field_errors: [...] }
+    // DRF returns object with field errors
     const errorData = error.response?.data || {};
     let msg = '회원가입 실패';
     
     if (Object.keys(errorData).length > 0) {
-      // Create a readable error message from the object
       const details = Object.entries(errorData)
         .map(([key, msgs]) => `${key}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
         .join('\n');
@@ -54,7 +71,7 @@ const handleSignup = async () => {
       msg += `: ${error.message}`;
     }
     
-    alert(msg);
+    showToast(msg, 'error');
   }
 };
 </script>
@@ -98,5 +115,11 @@ const handleSignup = async () => {
     </form>
 
     <SocialLoginButtons mode="signup" />
+    <BaseToast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+      @close="toast.visible = false"
+    />
   </AuthLayout>
 </template>
