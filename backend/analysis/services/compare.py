@@ -196,15 +196,6 @@ def evaluate_comparison(
         "generated_at": timezone.now().isoformat(),
     }
 
-def _coerce_allocations(spec_or_allocs: Any) -> List[Dict[str, Any]]:
-    if spec_or_allocs is None:
-        return []
-    if isinstance(spec_or_allocs, list):
-        return spec_or_allocs
-    if isinstance(spec_or_allocs, dict):
-        allocs = spec_or_allocs.get("allocations")
-        return allocs if isinstance(allocs, list) else []
-    return []
 
 def compare_portfolios(
     *,

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { authApi } from '@/services/auth.api';
+import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
 const currentStep = ref(0);
@@ -174,6 +175,10 @@ const finishSurvey = async () => {
     // API Call
     const response = await authApi.saveSurvey(payload);
     const { profile, total_score } = response.data;
+    
+    // ✅ Store 상태 갱신 (전역 프로필 정보 업데이트)
+    const authStore = useAuthStore();
+    await authStore.fetchUser();
     
     // Map Backend Profile to Frontend Keys (Legacy Support for SurveyResult.vue)
     // Pass raw backend profile code to result page
