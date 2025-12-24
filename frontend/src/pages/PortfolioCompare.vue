@@ -5,6 +5,7 @@ import { authApi } from '@/services/auth.api';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import SimpleDonut from '@/components/common/SimpleDonut.vue';
 import BaseInput from '@/components/common/BaseInput.vue';
+import BaseToast from '@/components/common/BaseToast.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -26,7 +27,17 @@ const showComparisonReport = ref(false);
 const analysisLoading = ref(false);
 
 const showSaveModal = ref(false);
-const saveForm = ref({ name: '', memo: '', isRepresentative: false });
+const saveForm = ref({ name: '', isRepresentative: false });
+
+// Toast State
+const toast = ref({
+  visible: false,
+  message: '',
+  type: 'success'
+});
+const showToast = (message, type = 'success') => {
+  toast.value = { visible: true, message, type };
+};
 
 const assetLabels = ['국내주식', '해외주식', '국내채권', '해외채권', '대체투자', '펀드', '현금성자산'];
 const assetColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'];
@@ -160,7 +171,16 @@ const selectPortfolio = async (id, targetIndex = null) => {
         
         // Init Rebalance State
         isRebalancing.value = true;
-        rebalancedAssets.value = [...portObj.assets];
+        
+        // [FIX] 초기 진입 시에도 소수점 제거 및 정수화
+        let rounded = portObj.assets.map(v => Math.round(v));
+        const sum = rounded.reduce((a, b) => a + b, 0);
+        if (sum !== 100) {
+            const diff = 100 - sum;
+            const maxIndex = rounded.indexOf(Math.max(...rounded));
+            rounded[maxIndex] += diff;
+        }
+        rebalancedAssets.value = rounded;
         
         step.value = 'analyze';
         
@@ -173,12 +193,12 @@ const selectPortfolio = async (id, targetIndex = null) => {
     }
   } catch (err) {
     console.error("Failed to fetch detail:", err);
-    alert("포트폴리오 정보를 가져오는데 실패했습니다.");
+    showToast("포트폴리오 정보를 가져오는데 실패했습니다.", "error");
   }
 };
 
 const startAnalysis = async () => {
-  if (!leftP.value || !rightP.value) return alert('비교할 포트폴리오를 모두 선택해주세요.');
+  if (!leftP.value || !rightP.value) return showToast('비교할 포트폴리오를 모두 선택해주세요.', 'warning');
   step.value = 'analyze';
   await runComparison();
 };
@@ -227,7 +247,7 @@ const runComparison = async () => {
     
   } catch (err) {
     console.error("Comparison failed:", err);
-    alert("비교 분석 중 오류가 발생했습니다: " + (err.response?.data?.detail || err.message));
+    showToast("비교 분석 중 오류가 발생했습니다: " + (err.response?.data?.detail || err.message), "error");
   } finally {
     analysisLoading.value = false;
   }
@@ -235,7 +255,18 @@ const runComparison = async () => {
 
 const toggleRebalance = () => {
   if (!isRebalancing.value) {
-    rebalancedAssets.value = [...rightP.value.assets];
+    // [FIX] 소수점 제거 및 정수화 (Integer enforcement)
+    let rounded = rightP.value.assets.map(v => Math.round(v));
+    const sum = rounded.reduce((a, b) => a + b, 0);
+    
+    // 합계가 100이 아니면 가장 큰 비중의 항목에서 보정
+    if (sum !== 100) {
+      const diff = 100 - sum;
+      const maxIndex = rounded.indexOf(Math.max(...rounded));
+      rounded[maxIndex] += diff;
+    }
+    
+    rebalancedAssets.value = rounded;
   }
   isRebalancing.value = !isRebalancing.value;
 };
@@ -256,7 +287,7 @@ const totalRebalanceWeight = computed(() => {
 const analyzeRebalance = async () => {
   const total = rebalancedAssets.value.reduce((a, b) => a + b, 0);
   // Allow slight float error but ensure strictly 100 for backend
-  if (Math.abs(total - 100) > 0.1) return alert(`자산 비중의 합이 ${total.toFixed(1)}%입니다. 100%를 맞춰주세요.`);
+  if (Math.abs(total - 100) > 0.1) return showToast(`자산 비중의 합이 ${total.toFixed(1)}%입니다. 100%를 맞춰주세요.`, "warning");
   
   try {
     analysisLoading.value = true;
@@ -298,7 +329,7 @@ const analyzeRebalance = async () => {
 
   } catch (err) {
     console.error("Rebalance analysis failed:", err);
-    alert("분석 중 오류가 발생했습니다: " + (err.response?.data?.detail || err.message));
+    showToast("분석 중 오류가 발생했습니다: " + (err.response?.data?.detail || err.message), "error");
   } finally {
     analysisLoading.value = false;
   }
@@ -317,12 +348,12 @@ const resetRebalance = () => {
 };
 
 const openSaveModal = () => {
-  saveForm.value = { name: rightP.value.name, memo: '', isRepresentative: false };
+  saveForm.value = { name: rightP.value.name, isRepresentative: false };
   showSaveModal.value = true;
 };
 
 const saveNewPortfolio = async () => {
-  if (!saveForm.value.name) return alert("이름을 입력해주세요.");
+  if (!saveForm.value.name) return showToast("이름을 입력해주세요.", "warning");
   
   try {
     const currentAssets = rightP.value.assets;
@@ -345,13 +376,17 @@ const saveNewPortfolio = async () => {
     };
     
     await authApi.savePortfolio(payload);
-    alert('저장되었습니다!');
-    
-    await loadPortfolios();
+    showToast('성공적으로 저장되었습니다!', 'success');
     showSaveModal.value = false;
+
+    // 저장 후 마이페이지로 이동하여 결과 확인
+    setTimeout(() => {
+        router.push('/user/mypage');
+    }, 1200);
+    
   } catch (err) {
     console.error("Save failed:", err);
-    alert("저장 실패");
+    showToast("저장 실패", "error");
   }
 };
 
@@ -852,10 +887,18 @@ const getSortedAssets = (assets, limit = null) => {
       <div class="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl">
         <h3 class="text-xl font-bold mb-6">새 포트폴리오 저장</h3>
         <BaseInput label="이름" v-model="saveForm.name" />
-        <div class="mb-6"><label class="block text-xs font-bold text-gray-500 mb-2">메모 (선택)</label><textarea v-model="saveForm.memo" rows="3" class="w-full border-b-2 p-2 outline-none resize-none"></textarea></div>
-        <div class="flex gap-3 justify-end"><button @click="showSaveModal = false" class="px-4 py-2 border rounded font-bold text-gray-500">취소</button><button @click="saveNewPortfolio" class="px-6 py-2 bg-[#283593] text-white rounded font-bold">저장</button></div>
+        <div class="h-6"></div>
+        <div class="flex gap-3 justify-end"><button @click="showSaveModal = false" class="px-4 py-2 border rounded font-bold text-gray-500 hover:bg-gray-50">취소</button><button @click="saveNewPortfolio" class="px-6 py-2 bg-[#283593] text-white rounded font-bold hover:bg-[#1a237e] shadow-md">저장</button></div>
       </div>
     </div>
+
+    <!-- Toast -->
+    <BaseToast 
+      :visible="toast.visible" 
+      :message="toast.message" 
+      :type="toast.type" 
+      @close="toast.visible = false" 
+    />
 
   </DefaultLayout>
 </template>

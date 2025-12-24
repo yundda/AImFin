@@ -161,7 +161,7 @@ class MarketIndexView(APIView):
         rate = (change / float(prev["Close"])) * 100
         
         # 차트 데이터 (종가 리스트)
-        chart_data = df["Close"].fillna(method='ffill').tolist()
+        chart_data = df["Close"].ffill().tolist()
         
         # 소수점 처리
         if is_exchange:
