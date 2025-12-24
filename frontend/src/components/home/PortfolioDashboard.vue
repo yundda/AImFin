@@ -255,7 +255,7 @@ const goToList = () => {
         
         <p class="text-gray-600 mb-8 leading-relaxed">
           {{ nickname }}님의 투자 성향은 현재<br>
-          <span class="font-bold text-[#283593] text-lg">'{{ portfolio.typeLabel }}'</span> 입니다.<br><br>
+          <span class="font-bold text-[#283593] text-lg">'{{ authStore.user.survey_profile_label }}'</span> 입니다.<br><br>
           <span class="text-sm text-gray-500">투자 성향 진단부터 다시 실시할까요?</span>
         </p>
 

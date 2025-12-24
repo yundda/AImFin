@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import BaseInput from '@/components/common/BaseInput.vue';
 import SocialLoginButtons from '@/components/auth/SocialLoginButtons.vue';
+import BaseToast from '@/components/common/BaseToast.vue'; // Import BaseToast
 import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter();
@@ -11,14 +12,25 @@ const authStore = useAuthStore();
 
 const form = ref({
   username: '', 
-  password: '',
-  rememberMe: false
+  password: ''
 });
+
+// Toast State
+const toast = ref({
+  visible: false,
+  message: '',
+  type: 'success'
+});
+
+const showToast = (message, type = 'success') => {
+  toast.value = { visible: true, message, type };
+};
 
 const handleLogin = async () => {
   // 1. 입력 확인
   if (!form.value.username || !form.value.password) {
-    return alert('아이디와 비밀번호를 입력해주세요.');
+    showToast('아이디와 비밀번호를 입력해주세요.', 'warning');
+    return;
   }
 
   try {
@@ -32,7 +44,7 @@ const handleLogin = async () => {
     } 
   } catch (error) {
     console.error('Login failed:', error);
-    alert('로그인 실패: ' + (error.response?.data?.detail || '아이디 또는 비밀번호를 확인해주세요.'));
+    showToast('로그인 실패: ' + (error.response?.data?.detail || '아이디 또는 비밀번호를 확인해주세요.'), 'error');
   }
 };
 </script>
@@ -60,13 +72,7 @@ const handleLogin = async () => {
         
       />
 
-      <div class="flex justify-between items-center mb-8 text-xs">
-        <label class="flex items-center text-gray-500 cursor-pointer">
-          <input type="checkbox" v-model="form.rememberMe" class="mr-2 rounded text-[#536dfe] focus:ring-[#536dfe]" />
-          로그인 정보 저장하기
-        </label>
-        <a href="#" class="text-gray-400 underline hover:text-gray-600">비밀번호를 잊어버리셨나요?</a>
-      </div>
+
 
       <button
         type="submit"
@@ -77,5 +83,11 @@ const handleLogin = async () => {
     </form>
 
     <SocialLoginButtons mode="login" />
+    <BaseToast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+      @close="toast.visible = false"
+    />
   </AuthLayout>
 </template>

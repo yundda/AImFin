@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { authApi } from '@/services/auth.api';
 import BaseInput from '@/components/common/BaseInput.vue';
+import BaseToast from '@/components/common/BaseToast.vue'; // Import BaseToast
 
 const authStore = useAuthStore();
 
@@ -11,6 +12,17 @@ const profile = ref({
   name: '',
   email: ''
 });
+
+// Toast State
+const toast = ref({
+  visible: false,
+  message: '',
+  type: 'success'
+});
+
+const showToast = (message, type = 'success') => {
+  toast.value = { visible: true, message, type };
+};
 
 // 초기 데이터 로드 및 변경 감지
 const initProfile = () => {
@@ -35,29 +47,22 @@ const password = ref({
 const updateProfile = async () => {
   try {
     const newNickname = profile.value.name.trim();
-    if (!newNickname) return alert('이름(닉네임)을 입력해주세요.');
+    if (!newNickname) return showToast('이름(닉네임)을 입력해주세요.', 'warning');
 
     await authApi.updateNickname(newNickname);
     
-    // 스토어 상태 업데이트 (API가 새 user 객체나 nickname을 리턴하면 좋겠지만, 
-    // 여기선 단순히 다시 fetch하거나 직접 수정)
+    // 스토어 상태 업데이트
     await authStore.fetchUser(); 
     
-    alert('프로필 정보가 수정되었습니다.');
+    showToast('프로필 정보가 수정되었습니다.', 'success');
   } catch (error) {
     console.error('Update failed:', error);
-    alert('수정 실패: ' + (error.response?.data?.detail || error.message));
+    showToast('수정 실패: ' + (error.response?.data?.detail || error.message), 'error');
   }
 };
 
 const updatePassword = () => {
-  alert('현재 비밀번호 변경 기능은 제공되지 않습니다 (Social Login User 등).');
-  // if (password.value.new !== password.value.confirm) {
-  //   alert('새 비밀번호가 일치하지 않습니다.');
-  //   return;
-  // }
-  // console.log('Update Password:', password.value);
-  // alert('비밀번호가 변경되었습니다.');
+  showToast('현재 비밀번호 변경 기능은 제공되지 않습니다 (Social Login User 등).', 'info');
   password.value = { current: '', new: '', confirm: '' };
 };
 </script>
@@ -154,5 +159,11 @@ const updatePassword = () => {
       </div>
 
     </div>
+    <BaseToast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+      @close="toast.visible = false"
+    />
   </div>
 </template>

@@ -10,10 +10,10 @@ const score = route.query.score || 0;
 const type = route.query.type || 'BALANCED';
 
 const typeInfo = {
-  CONSERVATIVE: { label: '안정형', icon: '🛡️', color: 'bg-green-500', text: 'text-green-600', desc: '원금 보존을 최우선으로 하며, 안정적인 예적금 위주의 투자를 선호합니다.' },
-  MODERATE_CONSERVATIVE: { label: '안정추구형', icon: '🐢', color: 'bg-teal-500', text: 'text-teal-600', desc: '안정성을 중시하지만, 예금 금리보다 높은 수익을 위해 일부 위험을 감수합니다.' },
-  BALANCED: { label: '중립형', icon: '⚖️', color: 'bg-blue-500', text: 'text-blue-600', desc: '위험과 수익의 균형을 중요하게 생각하며, 다양한 자산에 분산 투자합니다.' },
-  GROWTH: { label: '적극투자형', icon: '🐯', color: 'bg-indigo-500', text: 'text-indigo-600', desc: '높은 수익을 기대하며 주식이나 펀드 등 위험 자산 투자에 적극적입니다.' },
+  CONSERVATIVE: { label: '안정형', icon: '🐢', color: 'bg-green-500', text: 'text-green-600', desc: '원금 보존을 최우선으로 하며, 안정적인 예적금 위주의 투자를 선호합니다.' },
+  MODERATE_CONSERVATIVE: { label: '안정추구형', icon: '🐨', color: 'bg-teal-500', text: 'text-teal-600', desc: '안정성을 중시하지만, 예금 금리보다 높은 수익을 위해 일부 위험을 감수합니다.' },
+  BALANCED: { label: '중립형', icon: '🦓', color: 'bg-blue-500', text: 'text-blue-600', desc: '위험과 수익의 균형을 중요하게 생각하며, 다양한 자산에 분산 투자합니다.' },
+  GROWTH: { label: '적극투자형', icon: '🐅', color: 'bg-indigo-500', text: 'text-indigo-600', desc: '높은 수익을 기대하며 주식이나 펀드 등 위험 자산 투자에 적극적입니다.' },
   AGGRESSIVE: { label: '공격투자형', icon: '🦁', color: 'bg-purple-500', text: 'text-purple-600', desc: '시장 평균을 훨씬 상회하는 고수익을 목표로 과감하게 투자합니다.' }
 };
 
