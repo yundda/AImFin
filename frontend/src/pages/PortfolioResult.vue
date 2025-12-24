@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import DefaultLayout from "@/layouts/DefaultLayout.vue";
 import BaseInput from "@/components/common/BaseInput.vue";
+import BaseToast from "@/components/common/BaseToast.vue";
 import { authApi } from "@/services/auth.api"; // API import
 
 const route = useRoute();
@@ -14,6 +15,17 @@ const error = ref(null);
 const resultData = ref(null);
 const showModal = ref(false);
 const saveForm = ref({ name: "", memo: "" });
+
+// Toast 상태
+const toast = ref({
+  visible: false,
+  message: '',
+  type: 'success'
+});
+
+const showToast = (message, type = 'success') => {
+  toast.value = { visible: true, message, type };
+};
 
 // URL 파라미터 파싱
 const amount = Number(route.query.amount) || 0;
@@ -53,7 +65,6 @@ onMounted(() => {
   fetchRecommendation();
 });
 
-// 화면 표시용 Computed Properties
 // 화면 표시용 Computed Properties
 const profileLabel = computed(() => resultData.value?.profile_label || '분석 중');
 const profileColor = computed(() => {
@@ -116,8 +127,10 @@ const pieStyle = computed(() => {
 const formattedAmount = computed(() => amount.toLocaleString() + "원");
 
 const savePortfolio = async () => {
-  if (!saveForm.value.name) return alert('이름을 입력해주세요.');
-  if (!saveForm.value.name) return alert('이름을 입력해주세요.');
+  if (!saveForm.value.name) {
+    showToast('이름을 입력해주세요.', 'warning');
+    return;
+  }
 
   try {
     const payload = {
@@ -135,11 +148,16 @@ const savePortfolio = async () => {
     };
 
     await authApi.savePortfolio(payload);
-    alert('저장되었습니다!');
-    router.push('/user/mypage');
+    showToast('성공적으로 저장되었습니다!', 'success');
+    
+    // 토스트를 볼 시간을 준 뒤 이동
+    setTimeout(() => {
+        router.push('/user/mypage');
+    }, 1200);
+    
   } catch (err) {
     console.error("Save failed:", err);
-    alert('저장 중 오류가 발생했습니다.');
+    showToast('저장 중 오류가 발생했습니다.', 'error');
   }
 };
 
@@ -165,16 +183,46 @@ const assetLabels = {
   <DefaultLayout>
     <div class="max-w-4xl mx-auto px-6 py-12">
       <!-- 로딩 상태 -->
-      <div v-if="loading" class="text-center py-20">
-        <div
-          class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#283593] mx-auto mb-4"
-        ></div>
-        <p class="text-gray-500 font-medium">
-          AI가 최고의 포트폴리오를 구성하고 있습니다...
-        </p>
-        <p class="text-xs text-gray-400 mt-2">
-          약 5~10초 정도 소요될 수 있습니다.
-        </p>
+      <!-- 스켈레톤 로딩 상태 (Skeleton UI) -->
+      <!-- 스켈레톤 로딩 상태 (Skeleton UI) -->
+      <div v-if="loading">
+        <!-- 상단 헤더 (텍스트) - Pulse 없음 -->
+        <div class="text-center mb-10">
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">
+            AI가 포트폴리오를 생성 중입니다<span class="loading-dots"></span>
+          </h2>
+          <p class="text-gray-500">잠시만 기다려주세요</p>
+        </div>
+
+        <!-- 스켈레톤 요소들 (Pulse 적용) -->
+        <div class="animate-pulse">
+            <!-- 뱃지 스켈레톤 -->
+            <div class="h-8 bg-gray-300 rounded-full w-24 mx-auto mb-10"></div>
+
+            <!-- 원형 차트 스켈레톤 -->
+            <div class="w-64 h-64 bg-gray-300 rounded-full mx-auto mb-8"></div>
+
+            <!-- 위험도 게이지 스켈레톤 -->
+            <div class="h-3 bg-gray-300 rounded-full w-full max-w-xs mx-auto mb-12"></div>
+
+            <!-- AI 코멘트 스켈레톤 -->
+            <div class="bg-gray-100 p-6 rounded-xl text-left mb-10">
+              <div class="h-6 bg-gray-300 rounded w-1/4 mb-4"></div>
+              <div class="space-y-3">
+                <div class="h-4 bg-gray-300 rounded w-full"></div>
+                <div class="h-4 bg-gray-300 rounded w-5/6"></div>
+                <div class="h-4 bg-gray-300 rounded w-4/6"></div>
+              </div>
+            </div>
+
+            <!-- 자산 리스트 스켈레톤 -->
+            <div class="bg-gray-50 p-6 rounded-xl">
+              <div class="h-5 bg-gray-300 rounded w-1/4 mb-4"></div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="h-20 bg-gray-300 rounded" v-for="n in 4" :key="n"></div>
+              </div>
+            </div>
+        </div>
       </div>
 
       <!-- 에러 상태 -->
@@ -279,7 +327,7 @@ const assetLabels = {
               </div>
               <!-- 프로그레스 바 -->
               <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div class="h-full transition-all duration-300" :style="{ width: item.weight_pct + '%', backgroundColor: getColor(item.bucket) }"></div>
+                <div class="h-full transition-[width,background-color] duration-300" :style="{ width: item.weight_pct + '%', backgroundColor: getColor(item.bucket) }"></div>
               </div>
             </div>
           </div>
@@ -330,6 +378,13 @@ const assetLabels = {
         </div>
       </div>
     </div>
+    <!-- Toast -->
+    <BaseToast 
+      :visible="toast.visible" 
+      :message="toast.message" 
+      :type="toast.type" 
+      @close="toast.visible = false" 
+    />
   </DefaultLayout>
 </template>
 
@@ -346,5 +401,22 @@ const assetLabels = {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.loading-dots::after {
+  content: '.';
+  animation: dots 1.5s steps(3, end) infinite;
+  display: inline-block;
+  width: 1.5em; /* 점 3개 공간 확보 */
+  text-align: left;
+}
+
+
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
 }
 </style>

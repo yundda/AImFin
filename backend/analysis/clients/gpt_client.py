@@ -14,7 +14,7 @@ def complete_json(prompt: str, *, schema: dict, model: str | None = None, timeou
     - Structured output: text.format.json_schema (Responses API 신규 규격)
     """
     url = f"{settings.GMS_BASE_URL.rstrip('/')}/api.openai.com/v1/responses"
-    model = model or getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")
+    model = model or getattr(settings, "OPENAI_MODEL", "gpt-4o-realtime-preview-2024-10-01")
     timeout = timeout or int(getattr(settings, "OPENAI_TIMEOUT", 30))
 
     headers = {
